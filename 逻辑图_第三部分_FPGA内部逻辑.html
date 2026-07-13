@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>FPGA 内部程序逻辑图 — 逻辑图 第3部分</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Microsoft YaHei",sans-serif; padding:20px; max-width:100%; margin:0 auto; background:#fff; color:#222; }
+  h1 { text-align:center; font-size:22px; margin-bottom:4px; }
+  .sub { text-align:center; font-size:12px; color:#888; margin-bottom:20px; }
+  h2 { font-size:17px; margin:36px 0 14px; border-left:5px solid #1a73e8; padding-left:10px; }
+  .block { border:2px solid #ddd; border-radius:10px; padding:18px; margin-bottom:20px; background:#fafafa; }
+  .block h3 { font-size:14px; margin-bottom:12px; }
+  .row { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+  .diagram-box { background:#fff; border:2px solid #bbb; border-radius:8px; padding:14px; overflow-x:auto; }
+  .explain { flex:1; min-width:280px; }
+  .principle { background:#fff; border:1px solid #ddd; border-radius:6px; padding:10px 14px; margin-bottom:8px; font-size:13px; line-height:1.8; }
+  .principle .q { color:#1a73e8; font-weight:bold; }
+  .principle strong { color:#c5221f; }
+  .sig-table { width:100%; border-collapse:collapse; font-size:12px; margin:12px 0; }
+  .sig-table th { background:#444; color:#fff; padding:8px 10px; text-align:left; }
+  .sig-table td { padding:8px 10px; border:1px solid #ddd; vertical-align:top; }
+  svg { display:block; width:100%; height:auto; }
+  svg text { font-family:"Microsoft YaHei","SimHei",sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>核心板上程序的逻辑图</h1>
+<p class="sub">逻辑图 第3部分：FPGA 内部 5 个功能模块及信号连接</p>
+
+<!-- ====== 总览 ====== -->
+<h2>一、顶层总览：5 模块 + 全部信号</h2>
+
+<div class="diagram-box">
+<svg viewBox="-60 0 1040 680" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="#1a73e8"/></marker>
+    <marker id="a2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="#e37400"/></marker>
+    <marker id="a3" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="#34a853"/></marker>
+    <marker id="a4" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="#c5221f"/></marker>
+  </defs>
+
+  <!-- Background grid for alignment -->
+  <!-- Module 1: clk_div (left) -->
+  <rect x="60" y="30" width="200" height="95" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2.5" rx="8"/>
+  <text x="160" y="60" font-size="14" fill="#1a73e8" text-anchor="middle" font-weight="bold">clk_div</text>
+  <text x="160" y="80" font-size="11" fill="#555" text-anchor="middle">时钟分频器</text>
+  <text x="160" y="98" font-size="10" fill="#888" text-anchor="middle">50MHz → 1Hz / 1KHz</text>
+  <text x="160" y="114" font-size="9" fill="#888" text-anchor="middle">25bit+16bit 计数器</text>
+
+  <!-- Input to clk_div -->
+  <line x1="20" y1="65" x2="58" y2="65" stroke="#e37400" stroke-width="2" marker-end="url(#a2)"/>
+  <text x="14" y="61" font-size="11" fill="#e37400" text-anchor="end" font-weight="bold">clk_50MHz</text>
+  <text x="14" y="75" font-size="9" fill="#888" text-anchor="end">核心板晶振</text>
+
+  <!-- Module 2: key_debounce (left-bottom) -->
+  <rect x="60" y="195" width="200" height="95" fill="#fce8e6" stroke="#ea4335" stroke-width="2.5" rx="8"/>
+  <text x="160" y="225" font-size="14" fill="#c5221f" text-anchor="middle" font-weight="bold">key_debounce</text>
+  <text x="160" y="245" font-size="11" fill="#555" text-anchor="middle">按键消抖</text>
+  <text x="160" y="263" font-size="10" fill="#888" text-anchor="middle">1KHz采样×20次≈20ms</text>
+
+  <!-- Inputs to key_debounce -->
+  <line x1="14" y1="220" x2="58" y2="220" stroke="#c5221f" stroke-width="2" marker-end="url(#a4)"/>
+  <text x="10" y="216" font-size="11" fill="#c5221f" text-anchor="end" font-weight="bold">SW_RST</text>
+  <line x1="14" y1="265" x2="58" y2="265" stroke="#c5221f" stroke-width="2" marker-end="url(#a4)"/>
+  <text x="10" y="261" font-size="11" fill="#c5221f" text-anchor="end" font-weight="bold">SW_PAUSE</text>
+
+  <!-- clk_1KHz → key_debounce -->
+  <line x1="160" y1="125" x2="160" y2="193" stroke="#1a73e8" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#a1)"/>
+  <text x="172" y="162" font-size="9" fill="#1a73e8">clk_1KHz</text>
+
+  <!-- Module 3: fsm_ctrl (center) -->
+  <rect x="350" y="150" width="200" height="150" fill="#fff3e0" stroke="#e37400" stroke-width="2.5" rx="8"/>
+  <text x="450" y="180" font-size="14" fill="#e37400" text-anchor="middle" font-weight="bold">fsm_ctrl</text>
+  <text x="450" y="200" font-size="11" fill="#555" text-anchor="middle">控制状态机</text>
+  <text x="450" y="220" font-size="10" fill="#888" text-anchor="middle">IDLE / COUNT / PAUSE</text>
+  <text x="450" y="240" font-size="9" fill="#888" text-anchor="middle">sw_rst=1 优先级最高</text>
+
+  <!-- Clean signals → fsm_ctrl -->
+  <line x1="260" y1="225" x2="348" y2="225" stroke="#c5221f" stroke-width="2" marker-end="url(#a4)"/>
+  <text x="304" y="218" font-size="10" fill="#c5221f" text-anchor="middle">sw_rst_clean</text>
+
+  <line x1="260" y1="265" x2="300" y2="265" stroke="#c5221f" stroke-width="2"/>
+  <line x1="300" y1="265" x2="300" y2="248" stroke="#c5221f" stroke-width="2"/>
+  <line x1="300" y1="248" x2="348" y2="248" stroke="#c5221f" stroke-width="2" marker-end="url(#a4)"/>
+  <text x="304" y="280" font-size="10" fill="#c5221f" text-anchor="middle">sw_pause_clean</text>
+
+  <!-- Module 4: counter_60 (right) -->
+  <rect x="640" y="120" width="200" height="150" fill="#e8f5e9" stroke="#34a853" stroke-width="2.5" rx="8"/>
+  <text x="740" y="150" font-size="14" fill="#34a853" text-anchor="middle" font-weight="bold">counter_60</text>
+  <text x="740" y="170" font-size="11" fill="#555" text-anchor="middle">60进制BCD计数器</text>
+  <text x="740" y="190" font-size="10" fill="#888" text-anchor="middle">sec_l→sec_h→min_l→min_h</text>
+  <text x="740" y="208" font-size="9" fill="#888" text-anchor="middle">59:59+1→00:00</text>
+  <text x="740" y="226" font-size="9" fill="#888" text-anchor="middle">count_clr=1 → 全部归零</text>
+
+  <!-- count_en → counter_60 -->
+  <line x1="550" y1="185" x2="638" y2="185" stroke="#34a853" stroke-width="2.5" marker-end="url(#a3)"/>
+  <text x="594" y="176" font-size="11" fill="#34a853" text-anchor="middle" font-weight="bold">count_en</text>
+  <text x="594" y="190" font-size="9" fill="#888" text-anchor="middle">1=允许计数</text>
+
+  <!-- count_clr → counter_60 -->
+  <line x1="550" y1="240" x2="638" y2="240" stroke="#34a853" stroke-width="2.5" marker-end="url(#a3)"/>
+  <text x="594" y="232" font-size="11" fill="#34a853" text-anchor="middle" font-weight="bold">count_clr</text>
+  <text x="594" y="246" font-size="9" fill="#888" text-anchor="middle">1=计数器归零</text>
+
+  <!-- clk_1Hz → counter_60 (from clk_div over the top) -->
+  <line x1="160" y1="30" x2="160" y2="10" stroke="#1a73e8" stroke-width="1.5"/>
+  <line x1="160" y1="10" x2="840" y2="10" stroke="#1a73e8" stroke-width="1.5"/>
+  <line x1="840" y1="10" x2="840" y2="100" stroke="#1a73e8" stroke-width="1.5"/>
+  <line x1="840" y1="100" x2="740" y2="100" stroke="#1a73e8" stroke-width="1.5"/>
+  <line x1="740" y1="100" x2="740" y2="118" stroke="#1a73e8" stroke-width="2" marker-end="url(#a1)"/>
+  <text x="500" y="22" font-size="10" fill="#1a73e8" text-anchor="middle" font-weight="bold">clk_1Hz (秒脉冲)</text>
+
+  <!-- Module 5: seg_decoder (right-bottom) -->
+  <rect x="640" y="350" width="200" height="120" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2.5" rx="8"/>
+  <text x="740" y="380" font-size="14" fill="#7b1fa2" text-anchor="middle" font-weight="bold">seg_decoder</text>
+  <text x="740" y="400" font-size="11" fill="#555" text-anchor="middle">显示译码器</text>
+  <text x="740" y="418" font-size="10" fill="#888" text-anchor="middle">BCD→7段码 + 动态扫描</text>
+  <text x="740" y="436" font-size="9" fill="#888" text-anchor="middle">scan_cnt: 0→1→2→3</text>
+
+  <!-- BCD[15:0] → seg_decoder -->
+  <line x1="840" y1="195" x2="900" y2="195" stroke="#34a853" stroke-width="2"/>
+  <line x1="900" y1="195" x2="900" y2="400" stroke="#34a853" stroke-width="2"/>
+  <line x1="900" y1="400" x2="842" y2="400" stroke="#34a853" stroke-width="2" marker-end="url(#a3)"/>
+  <text x="915" y="300" font-size="10" fill="#34a853" font-weight="bold">BCD</text>
+  <text x="915" y="315" font-size="9" fill="#888">[15:0]</text>
+
+  <!-- clk_1KHz → seg_decoder -->
+  <line x1="260" y1="55" x2="260" y2="15" stroke="#1a73e8" stroke-width="1.5"/>
+  <line x1="260" y1="15" x2="630" y2="15" stroke="#1a73e8" stroke-width="1.5"/>
+  <line x1="630" y1="15" x2="630" y2="430" stroke="#1a73e8" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <line x1="630" y1="430" x2="638" y2="430" stroke="#1a73e8" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#a1)"/>
+  <text x="445" y="26" font-size="10" fill="#1a73e8" text-anchor="middle" font-weight="bold">clk_1KHz (扫描时钟)</text>
+
+  <!-- SEG output -->
+  <line x1="640" y1="385" x2="590" y2="385" stroke="#7b1fa2" stroke-width="2.5"/>
+  <line x1="590" y1="385" x2="570" y2="385" stroke="#7b1fa2" stroke-width="2.5" marker-end="url(#a2)"/>
+  <text x="560" y="378" font-size="11" fill="#7b1fa2" text-anchor="end" font-weight="bold">SEG[7:0]</text>
+  <text x="560" y="392" font-size="9" fill="#888" text-anchor="end">→ 底板段选</text>
+
+  <!-- DIG output -->
+  <line x1="640" y1="440" x2="590" y2="440" stroke="#7b1fa2" stroke-width="2.5"/>
+  <line x1="590" y1="440" x2="570" y2="440" stroke="#7b1fa2" stroke-width="2.5" marker-end="url(#a2)"/>
+  <text x="560" y="434" font-size="11" fill="#7b1fa2" text-anchor="end" font-weight="bold">DIG[3:0]</text>
+  <text x="560" y="448" font-size="9" fill="#888" text-anchor="end">→ 底板位选</text>
+
+  <!-- LED outputs from fsm_ctrl — route to the left side -->
+  <line x1="350" y1="260" x2="330" y2="260" stroke="#e37400" stroke-width="2"/>
+  <line x1="330" y1="260" x2="330" y2="370" stroke="#e37400" stroke-width="2"/>
+  <line x1="330" y1="370" x2="440" y2="370" stroke="#e37400" stroke-width="2"/>
+  <line x1="440" y1="370" x2="440" y2="470" stroke="#e37400" stroke-width="2"/>
+  <line x1="440" y1="470" x2="560" y2="470" stroke="#e37400" stroke-width="2"/>
+  <text x="490" y="464" font-size="11" fill="#e37400" font-weight="bold">led_run → LED_RUN(绿)</text>
+
+  <line x1="550" y1="260" x2="570" y2="260" stroke="#e37400" stroke-width="2"/>
+  <line x1="570" y1="260" x2="570" y2="380" stroke="#e37400" stroke-width="2"/>
+  <line x1="570" y1="380" x2="560" y2="380" stroke="#e37400" stroke-width="2"/>
+  <line x1="560" y1="380" x2="560" y2="475" stroke="#e37400" stroke-width="2"/>
+  <line x1="560" y1="475" x2="400" y2="475" stroke="#e37400" stroke-width="2"/>
+  <text x="470" y="493" font-size="11" fill="#e37400" font-weight="bold">led_pause → LED_PAUSE(红)</text>
+
+  <!-- Legend -->
+  <rect x="20" y="500" width="935" height="145" fill="#fafafa" stroke="#ccc" stroke-width="1" rx="6"/>
+  <text x="40" y="525" font-size="12" fill="#333" font-weight="bold">图例</text>
+  <line x1="40" y1="542" x2="72" y2="542" stroke="#e37400" stroke-width="2.5"/>
+  <text x="80" y="546" font-size="11" fill="#e37400">外部输入 (clk_50MHz, SW_RST, SW_PAUSE)</text>
+  <text x="360" y="546" font-size="11" fill="#c5221f">── 开关信号流 (SW→消抖→状态机)</text>
+  <line x1="40" y1="564" x2="72" y2="564" stroke="#34a853" stroke-width="2.5"/>
+  <text x="80" y="568" font-size="11" fill="#34a853">计数数据流 (count_en/clr→BCD→seg)</text>
+  <text x="360" y="568" font-size="11" fill="#1a73e8">┅┅ 时钟信号 (clk_1Hz, clk_1KHz)</text>
+  <line x1="40" y1="586" x2="72" y2="586" stroke="#7b1fa2" stroke-width="2.5"/>
+  <text x="80" y="590" font-size="11" fill="#7b1fa2">显示输出 (SEG, DIG→底板)</text>
+  <text x="360" y="590" font-size="11" fill="#e37400">指示灯输出 (led_run, led_pause→底板)</text>
+  <text x="40" y="620" font-size="10" fill="#888">所有模块均在 FPGA 内部实现（Verilog） &emsp;|&emsp; 外部接口信号与第2部分引脚表完全对应</text>
+</svg>
+</div>
+
+<!-- ====== 信号接口表 ====== -->
+<h2>二、模块接口定义</h2>
+
+<table class="sig-table">
+<tr><th>模块</th><th>输入</th><th>输出</th><th>功能</th></tr>
+<tr><td>clk_div</td><td>clk_50MHz(1bit)</td><td>clk_1Hz(1bit), clk_1KHz(1bit)</td><td>50M→1Hz(c/25M) + 50M→1KHz(c/25K)</td></tr>
+<tr><td>key_debounce</td><td>SW_RST, SW_PAUSE, clk_1KHz</td><td>sw_rst_clean, sw_pause_clean</td><td>连续20次同值→输出，消抖≈20ms</td></tr>
+<tr><td>fsm_ctrl</td><td>sw_rst_clean, sw_pause_clean</td><td>count_en, count_clr, led_run, led_pause</td><td>IDLE/COUNT/PAUSE，sw_rst 优先</td></tr>
+<tr><td>counter_60</td><td>clk_1Hz, count_en, count_clr</td><td>BCD[15:0]</td><td>4级联BCD: 秒个→秒十→分个→分十</td></tr>
+<tr><td>seg_decoder</td><td>BCD[15:0], clk_1KHz</td><td>SEG[7:0], DIG[3:0]</td><td>译码+4位动态扫描 (scan 0→1→2→3)</td></tr>
+</table>
+
+<!-- ====== 模块1 ====== -->
+<h2>三、模块1：clk_div — 时钟分频器</h2>
+<div class="block"><h3>一个 50MHz 晶振，生出 1Hz 和 1KHz</h3>
+<div class="row">
+<div class="diagram-box" style="min-width:480px;">
+<svg viewBox="0 0 520 170" xmlns="http://www.w3.org/2000/svg">
+  <rect x="20" y="35" width="110" height="55" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" rx="6"/>
+  <text x="75" y="58" font-size="12" fill="#1a73e8" text-anchor="middle" font-weight="bold">50MHz</text>
+  <text x="75" y="75" font-size="9" fill="#888" text-anchor="middle">核心板晶振</text>
+  <line x1="130" y1="62" x2="160" y2="62" stroke="#1a73e8" stroke-width="2"/>
+  <rect x="160" y="25" width="200" height="75" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2.5" rx="8"/>
+  <text x="260" y="50" font-size="13" fill="#1a73e8" text-anchor="middle" font-weight="bold">clk_div</text>
+  <text x="260" y="68" font-size="10" fill="#555" text-anchor="middle">50MHz → 1Hz / 1KHz</text>
+  <text x="260" y="84" font-size="9" fill="#888" text-anchor="middle">25bit + 16bit 计数器</text>
+  <line x1="360" y1="50" x2="430" y2="50" stroke="#1a73e8" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="435" y="54" font-size="11" fill="#1a73e8" font-weight="bold">clk_1Hz</text>
+  <line x1="360" y1="75" x2="430" y2="75" stroke="#1a73e8" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="435" y="79" font-size="11" fill="#1a73e8" font-weight="bold">clk_1KHz</text>
+  <rect x="20" y="115" width="490" height="44" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="265" y="134" font-size="10" fill="#555" text-anchor="middle">1Hz:  50,000,000 ÷ 2 = 25,000,000 → cnt 计数到 24,999,999 翻转</text>
+  <text x="265" y="152" font-size="10" fill="#555" text-anchor="middle">1KHz: 50,000,000 ÷ 1000 ÷ 2 = 25,000 → cnt 计数到 24,999 翻转</text>
+</svg>
+</div>
+<div class="explain">
+<div class="principle"><span class="q">1Hz → counter_60</span>，每秒触发一次加1。<br><span class="q">1KHz → key_debounce</span> 每毫秒采样 + <span class="q">→ seg_decoder</span> 驱动动态扫描。</div>
+</div>
+</div></div>
+
+<!-- ====== 模块2 ====== -->
+<h2>四、模块2：key_debounce — 按键消抖</h2>
+<div class="block"><h3>连续 20 次同值才确认，消除 5~20ms 机械抖动</h3>
+<div class="row">
+<div class="diagram-box" style="min-width:480px;">
+<svg viewBox="0 0 520 210" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="18" font-size="12" fill="#333" font-weight="bold">输入：SW_RST (有抖动)</text>
+  <line x1="20" y1="28" x2="220" y2="28" stroke="#ccc" stroke-width="1"/>
+  <path d="M20,50 L30,50 L35,30 L40,50 L45,30 L50,50 L55,30 L60,50 L65,45 L70,30 L75,50 L80,50 L85,35 L90,50" stroke="#c5221f" stroke-width="1.8" fill="none"/>
+  <text x="100" y="65" font-size="10" fill="#c5221f">抖动期 ≈ 10ms → 消抖窗口</text>
+
+  <text x="20" y="100" font-size="12" fill="#333" font-weight="bold">输出：sw_rst_clean (干净)</text>
+  <line x1="20" y1="110" x2="220" y2="110" stroke="#ccc" stroke-width="1"/>
+  <path d="M20,132 L220,132" stroke="#34a853" stroke-width="2.5" fill="none"/>
+  <text x="230" y="136" font-size="10" fill="#34a853">确认，延迟≈20ms</text>
+
+  <rect x="20" y="148" width="475" height="52" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="260" y="166" font-size="10" fill="#555" text-anchor="middle">clk_1KHz 每毫秒采样一次 → 连续20次读到同一值 → 输出更新 → 中途变过则归零重来</text>
+  <text x="260" y="184" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">消抖窗口 20ms，人手感觉不到延迟。不消抖 → 状态机狂跳 → LED 乱闪 → 验收暴露。</text>
+</svg>
+</div>
+</div></div>
+
+<!-- ====== 模块3 ====== -->
+<h2>五、模块3：fsm_ctrl — 控制状态机</h2>
+<div class="block"><h3>IDLE / COUNT / PAUSE 三态，sw_rst 优先级最高</h3>
+<div class="row">
+<div class="diagram-box" style="min-width:520px;">
+<svg viewBox="0 0 560 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="fsm" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="#333"/></marker>
+  </defs>
+
+  <!-- IDLE -->
+  <circle cx="160" cy="70" r="38" fill="#fff3e0" stroke="#e37400" stroke-width="3"/>
+  <text x="160" y="62" font-size="13" fill="#e37400" text-anchor="middle" font-weight="bold">IDLE</text>
+  <text x="160" y="80" font-size="9" fill="#555" text-anchor="middle">显示00:00</text>
+  <text x="160" y="94" font-size="9" fill="#888" text-anchor="middle">count_clr=1</text>
+
+  <!-- COUNT -->
+  <circle cx="350" cy="200" r="45" fill="#e8f5e9" stroke="#34a853" stroke-width="3"/>
+  <text x="350" y="190" font-size="13" fill="#34a853" text-anchor="middle" font-weight="bold">COUNT</text>
+  <text x="350" y="208" font-size="9" fill="#555" text-anchor="middle">count_en=1</text>
+  <text x="350" y="222" font-size="9" fill="#888" text-anchor="middle">led_run=1</text>
+
+  <!-- PAUSE -->
+  <circle cx="350" cy="320" r="38" fill="#fce8e6" stroke="#ea4335" stroke-width="3"/>
+  <text x="350" y="312" font-size="13" fill="#c5221f" text-anchor="middle" font-weight="bold">PAUSE</text>
+  <text x="350" y="330" font-size="9" fill="#555" text-anchor="middle">保持</text>
+  <text x="350" y="344" font-size="9" fill="#888" text-anchor="middle">led_pause=1</text>
+
+  <!-- IDLE → COUNT (curve going down-right) -->
+  <path d="M195,85 Q270,130 310,165" stroke="#34a853" stroke-width="2.5" fill="none" marker-end="url(#fsm)"/>
+  <text x="260" y="115" font-size="10" fill="#34a853" font-weight="bold">sw_rst=0(启动)</text>
+
+  <!-- COUNT → IDLE (curve going up-left, above the IDLE→COUNT curve) -->
+  <path d="M305,185 Q240,110 195,90" stroke="#e37400" stroke-width="2.5" fill="none" marker-end="url(#fsm)"/>
+  <text x="220" y="130" font-size="10" fill="#e37400" font-weight="bold">sw_rst=1(清零)</text>
+
+  <!-- COUNT → PAUSE (straight down) -->
+  <line x1="350" y1="245" x2="350" y2="282" stroke="#c5221f" stroke-width="2.5" marker-end="url(#fsm)"/>
+  <text x="362" y="268" font-size="10" fill="#c5221f" font-weight="bold">sw_pause=1</text>
+  <text x="362" y="282" font-size="9" fill="#888">(暂停)</text>
+
+  <!-- PAUSE → COUNT (curve going up-left, left of the COUNT circle) -->
+  <path d="M312,310 Q260,250 310,210" stroke="#34a853" stroke-width="2.5" fill="none" marker-end="url(#fsm)"/>
+  <text x="250" y="255" font-size="10" fill="#34a853" font-weight="bold">sw_pause=0</text>
+  <text x="250" y="269" font-size="9" fill="#888">(恢复)</text>
+
+  <!-- PAUSE → IDLE (long curve to upper-left) -->
+  <path d="M312,310 Q200,290 195,105" stroke="#e37400" stroke-width="2.5" fill="none" marker-end="url(#fsm)"/>
+  <text x="160" y="220" font-size="10" fill="#e37400" font-weight="bold">sw_rst=1</text>
+  <text x="160" y="234" font-size="9" fill="#888">优先级最高</text>
+
+  <!-- Output table -->
+  <rect x="420" y="40" width="130" height="300" fill="#fafafa" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="485" y="64" font-size="11" fill="#333" text-anchor="middle" font-weight="bold">输出信号</text>
+  <line x1="432" y1="74" x2="538" y2="74" stroke="#ddd" stroke-width="1"/>
+  <text x="485" y="96" font-size="10" fill="#555" text-anchor="middle">count_en</text>
+  <text x="485" y="114" font-size="10" fill="#34a853" text-anchor="middle" font-weight="bold">COUNT时=1</text>
+  <text x="485" y="142" font-size="10" fill="#555" text-anchor="middle">count_clr</text>
+  <text x="485" y="160" font-size="10" fill="#34a853" text-anchor="middle" font-weight="bold">IDLE时=1</text>
+  <text x="485" y="192" font-size="10" fill="#555" text-anchor="middle">led_run</text>
+  <text x="485" y="210" font-size="10" fill="#e37400" text-anchor="middle" font-weight="bold">COUNT时=1</text>
+  <text x="485" y="244" font-size="10" fill="#555" text-anchor="middle">led_pause</text>
+  <text x="485" y="262" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">PAUSE时=1</text>
+  <text x="485" y="300" font-size="10" fill="#888" text-anchor="middle">IDLE时全为0</text>
+  <text x="485" y="318" font-size="9" fill="#888" text-anchor="middle">上电默认IDLE</text>
+</svg>
+</div>
+<div class="explain">
+<div class="principle"><span class="q">上电默认 IDLE</span> → 显示 00:00, 两个LED都灭 → 等待用户操作。<br><span class="q">开关1 优先级最高：</span>无论 COUNT 还是 PAUSE，拨到"清零"立刻归零。</div>
+</div>
+</div></div>
+
+<!-- ====== 模块4 ====== -->
+<h2>六、模块4：counter_60 — 60进制BCD计数器</h2>
+<div class="block"><h3>4 级联 BCD 计数器：秒个→秒十→分个→分十</h3>
+<div class="row">
+<div class="diagram-box" style="min-width:520px;">
+<svg viewBox="0 0 560 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="c60" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="#34a853"/></marker>
+  </defs>
+
+  <line x1="30" y1="55" x2="80" y2="55" stroke="#1a73e8" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#c60)"/>
+  <text x="20" y="51" font-size="11" fill="#1a73e8" font-weight="bold">clk_1Hz</text>
+
+  <!-- sec_l -->
+  <rect x="80" y="20" width="90" height="75" fill="#e8f5e9" stroke="#34a853" stroke-width="2" rx="6"/>
+  <text x="125" y="44" font-size="12" fill="#34a853" text-anchor="middle" font-weight="bold">秒个位</text>
+  <text x="125" y="60" font-size="10" fill="#555" text-anchor="middle">0→...→9→0</text>
+  <text x="125" y="76" font-size="9" fill="#888" text-anchor="middle">per=10</text>
+  <text x="125" y="90" font-size="9" fill="#888" text-anchor="middle">sec_l[3:0]</text>
+
+  <line x1="170" y1="55" x2="210" y2="55" stroke="#34a853" stroke-width="2" marker-end="url(#c60)"/>
+  <text x="190" y="48" font-size="9" fill="#34a853" text-anchor="middle">carry</text>
+  <text x="190" y="65" font-size="8" fill="#888" text-anchor="middle">(9→0)</text>
+
+  <!-- sec_h -->
+  <rect x="210" y="20" width="90" height="75" fill="#e8f5e9" stroke="#34a853" stroke-width="2" rx="6"/>
+  <text x="255" y="44" font-size="12" fill="#34a853" text-anchor="middle" font-weight="bold">秒十位</text>
+  <text x="255" y="60" font-size="10" fill="#555" text-anchor="middle">0→...→5→0</text>
+  <text x="255" y="76" font-size="9" fill="#888" text-anchor="middle">per=6</text>
+  <text x="255" y="90" font-size="9" fill="#888" text-anchor="middle">sec_h[3:0]</text>
+
+  <line x1="300" y1="55" x2="350" y2="55" stroke="#34a853" stroke-width="2" marker-end="url(#c60)"/>
+  <text x="325" y="48" font-size="9" fill="#34a853" text-anchor="middle">carry</text>
+  <text x="325" y="65" font-size="8" fill="#888" text-anchor="middle">(5→0)</text>
+
+  <!-- min_l -->
+  <rect x="350" y="20" width="90" height="75" fill="#fff3e0" stroke="#e37400" stroke-width="2" rx="6"/>
+  <text x="395" y="44" font-size="12" fill="#e37400" text-anchor="middle" font-weight="bold">分个位</text>
+  <text x="395" y="60" font-size="10" fill="#555" text-anchor="middle">0→...→9→0</text>
+  <text x="395" y="76" font-size="9" fill="#888" text-anchor="middle">per=10</text>
+  <text x="395" y="90" font-size="9" fill="#888" text-anchor="middle">min_l[3:0]</text>
+
+  <line x1="395" y1="95" x2="395" y2="125" stroke="#e37400" stroke-width="2" marker-end="url(#c60)"/>
+  <text x="408" y="115" font-size="9" fill="#e37400">carry</text>
+  <text x="408" y="128" font-size="8" fill="#888">(9→0)</text>
+
+  <!-- min_h -->
+  <rect x="350" y="130" width="90" height="50" fill="#fff3e0" stroke="#e37400" stroke-width="2" rx="6"/>
+  <text x="395" y="152" font-size="12" fill="#e37400" text-anchor="middle" font-weight="bold">分十位</text>
+  <text x="395" y="168" font-size="10" fill="#555" text-anchor="middle">0→...→5→0</text>
+
+  <!-- Output -->
+  <rect x="80" y="130" width="220" height="28" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="190" y="149" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">BCD[15:0] = {min_h, min_l, sec_h, sec_l}</text>
+
+  <!-- Boundary -->
+  <rect x="30" y="178" width="510" height="52" fill="#fff3cd" stroke="#f9ab00" stroke-width="1" rx="4"/>
+  <text x="285" y="196" font-size="10" fill="#e37400" text-anchor="middle"><tspan font-weight="bold">边界条件：</tspan>当前值=59:59 且 clk_1Hz 上升沿 → 全部归零 (00:00)</text>
+  <text x="285" y="214" font-size="10" fill="#e37400" text-anchor="middle">count_clr=1 → 所有位强制归零 &emsp; count_en=0 → 保持当前值不变</text>
+  <text x="285" y="230" font-size="10" fill="#888" text-anchor="middle">预置值：parameter INIT_MIN=15, INIT_SEC=45 → 复位后从预设值开始。验收改参数重下载即可。</text>
+</svg>
+</div>
+<div class="explain">
+<div class="principle"><span class="q">级联进位：</span>低位移到最大值 → 下一拍归零的同时产生 carry → 高位收到 carry 后 +1。<br><span class="q">预置值：</span>改 Verilog 参数 INIT_MIN 和 INIT_SEC，重新下载。不需要底板硬件改动。</div>
+</div>
+</div></div>
+
+<!-- ====== 模块5 ====== -->
+<h2>七、模块5：seg_decoder — 显示译码器</h2>
+<div class="block"><h3>BCD→7段译码 + 4位动态扫描</h3>
+<div class="row">
+<div class="diagram-box" style="min-width:520px;">
+<svg viewBox="0 0 560 370" xmlns="http://www.w3.org/2000/svg">
+  <rect x="60" y="15" width="150" height="52" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" rx="6"/>
+  <text x="135" y="36" font-size="12" fill="#1a73e8" text-anchor="middle" font-weight="bold">扫描计数器</text>
+  <text x="135" y="52" font-size="10" fill="#555" text-anchor="middle">00→01→10→11→00</text>
+  <text x="135" y="64" font-size="9" fill="#888" text-anchor="middle">clk_1KHz 驱动</text>
+  <line x1="210" y1="32" x2="240" y2="32" stroke="#1a73e8" stroke-width="2"/>
+  <line x1="210" y1="50" x2="240" y2="50" stroke="#1a73e8" stroke-width="2"/>
+  <rect x="240" y="10" width="160" height="60" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="6"/>
+  <text x="320" y="30" font-size="12" fill="#7b1fa2" text-anchor="middle" font-weight="bold">4选1多路选择器</text>
+  <text x="320" y="46" font-size="10" fill="#555" text-anchor="middle">0→sec_l 1→sec_h</text>
+  <text x="320" y="60" font-size="10" fill="#555" text-anchor="middle">2→min_l 3→min_h</text>
+  <line x1="240" y1="40" x2="210" y2="40" stroke="#34a853" stroke-width="2"/>
+  <line x1="210" y1="40" x2="180" y2="40" stroke="#34a853" stroke-width="2"/>
+  <text x="50" y="36" font-size="10" fill="#34a853" font-weight="bold">BCD[15:0]</text>
+  <text x="50" y="50" font-size="9" fill="#888">(4×4bit)</text>
+  <line x1="400" y1="40" x2="430" y2="40" stroke="#7b1fa2" stroke-width="2"/>
+  <rect x="210" y="90" width="200" height="65" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="6"/>
+  <text x="310" y="112" font-size="12" fill="#7b1fa2" text-anchor="middle" font-weight="bold">7段译码器 (共阳极)</text>
+  <text x="310" y="130" font-size="10" fill="#555" text-anchor="middle">BCD[3:0] → SEG[7:0]</text>
+  <text x="310" y="146" font-size="10" fill="#555" text-anchor="middle">0=亮 1=灭</text>
+  <line x1="310" y1="155" x2="310" y2="180" stroke="#7b1fa2" stroke-width="2"/>
+  <text x="310" y="198" font-size="11" fill="#7b1fa2" text-anchor="middle" font-weight="bold">SEG[7:0] → 底板段选</text>
+  <text x="310" y="214" font-size="11" fill="#7b1fa2" text-anchor="middle" font-weight="bold">DIG[3:0] → 底板位选</text>
+  <text x="310" y="232" font-size="9" fill="#888" text-anchor="middle">(DIG低有效, 与SEG同步: 先关→换图→再开)</text>
+  <rect x="15" y="250" width="530" height="85" fill="#fafafa" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="280" y="268" font-size="10" fill="#333" text-anchor="middle" font-weight="bold">7段译码表 (共阳极: 0=亮, 1=灭)  Bit顺序在代码中定义一致即可</text>
+  <text x="30" y="288" font-size="9" fill="#555">0→C0h 1→F9h 2→A4h 3→B0h 4→99h 5→92h 6→82h 7→F8h 8→80h 9→90h</text>
+  <text x="30" y="306" font-size="9" fill="#888">a段=bit0 b段=bit1 ... dp段=bit7（或任意顺序，代码与PCB一致即可）</text>
+  <text x="280" y="326" font-size="9" fill="#888" text-anchor="middle">扫描频率 1KHz → 每位 250μs → 每秒 250 轮 → 肉眼不可见闪烁</text>
+</svg>
+</div>
+<div class="explain">
+<div class="principle"><span class="q">为什么先关后开？</span>切换下一位前先关当前位 → 换段选图案 → 再开下一位。如果先开后换 → 旧图案在新位上闪一下 → <strong>残影</strong>。</div>
+</div>
+</div></div>
+
+<!-- ====== 全部信号 ====== -->
+<h2>八、全部信号一览</h2>
+
+<table class="sig-table">
+<tr><th>信号名</th><th>位宽</th><th>来源</th><th>去向</th><th>类别</th></tr>
+<tr><td>clk_50MHz</td><td>1</td><td>核心板晶振</td><td>clk_div</td><td>外部输入</td></tr>
+<tr><td>clk_1Hz</td><td>1</td><td>clk_div</td><td>counter_60</td><td>内部时钟</td></tr>
+<tr><td>clk_1KHz</td><td>1</td><td>clk_div</td><td>key_debounce, seg_decoder</td><td>内部时钟</td></tr>
+<tr><td>SW_RST</td><td>1</td><td>底板开关1</td><td>key_debounce</td><td>外部输入</td></tr>
+<tr><td>SW_PAUSE</td><td>1</td><td>底板开关2</td><td>key_debounce</td><td>外部输入</td></tr>
+<tr><td>sw_rst_clean</td><td>1</td><td>key_debounce</td><td>fsm_ctrl</td><td>内部信号</td></tr>
+<tr><td>sw_pause_clean</td><td>1</td><td>key_debounce</td><td>fsm_ctrl</td><td>内部信号</td></tr>
+<tr><td>count_en</td><td>1</td><td>fsm_ctrl</td><td>counter_60</td><td>内部信号</td></tr>
+<tr><td>count_clr</td><td>1</td><td>fsm_ctrl</td><td>counter_60</td><td>内部信号</td></tr>
+<tr><td>led_run</td><td>1</td><td>fsm_ctrl</td><td>LED_RUN(外部)</td><td>外部输出</td></tr>
+<tr><td>led_pause</td><td>1</td><td>fsm_ctrl</td><td>LED_PAUSE(外部)</td><td>外部输出</td></tr>
+<tr><td>BCD[15:0]</td><td>16</td><td>counter_60</td><td>seg_decoder</td><td>内部数据</td></tr>
+<tr><td>SEG[7:0]</td><td>8</td><td>seg_decoder</td><td>底板 段选</td><td>外部输出</td></tr>
+<tr><td>DIG[3:0]</td><td>4</td><td>seg_decoder</td><td>底板 位选</td><td>外部输出</td></tr>
+</table>
+
+<p style="text-align:center;font-size:13px;color:#888;margin-top:15px;">
+  共 14 条信号：外部输入 3 条 + 外部输出 4 条 + 内部信号 5 条 + 内部时钟 2 条
+</p>
+
+</body>
+</html>

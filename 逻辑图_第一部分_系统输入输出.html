@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>秒表系统输入输出框图 — 逻辑图 第1部分</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "SimHei", sans-serif; padding: 30px; color: #222; }
+  h1 { text-align: center; font-size: 22px; margin-bottom: 5px; }
+  .subtitle { text-align: center; font-size: 13px; color: #666; margin-bottom: 25px; }
+
+  /* === 主图区域 === */
+  .diagram { display: flex; align-items: stretch; justify-content: center; gap: 0; margin-bottom: 30px; min-height: 380px; }
+
+  /* 左侧输入 */
+  .inputs { width: 200px; display: flex; flex-direction: column; justify-content: center; gap: 28px; padding-right: 10px; }
+  .input-item { text-align: right; }
+  .input-item .label { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+  .input-item .desc { font-size: 11px; color: #555; }
+  .input-arrow { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .input-arrow .arrow-line { width: 40px; height: 2px; background: #333; position: relative; }
+  .input-arrow .arrow-line::after { content: ''; position: absolute; right: -6px; top: -4px; width: 0; height: 0; border-left: 8px solid #333; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+
+  /* 中间板子 */
+  .board { flex: 1; border: 3px solid #333; border-radius: 8px; padding: 15px; background: #fafafa; display: flex; flex-direction: column; gap: 12px; }
+  .board-title { text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 5px; }
+  .core-board { border: 2px solid #1a73e8; border-radius: 6px; padding: 12px; background: #e8f0fe; }
+  .core-board .title { font-size: 14px; font-weight: bold; color: #1a73e8; margin-bottom: 6px; }
+  .core-board .builtin { font-size: 11px; color: #555; margin-bottom: 8px; }
+  .core-board .modules { display: flex; flex-direction: column; gap: 6px; font-size: 12px; padding-left: 8px; }
+  .core-board .module { border: 1px solid #999; border-radius: 4px; padding: 5px 10px; background: #fff; text-align: center; }
+  .core-board .module-flow { text-align: center; font-size: 16px; color: #666; margin: 2px 0; }
+
+  .base-board { border: 2px dashed #e37400; border-radius: 6px; padding: 10px; background: #fff8f0; margin-top: auto; }
+  .base-board .title { font-size: 12px; font-weight: bold; color: #e37400; }
+  .base-board .content { font-size: 11px; color: #666; margin-top: 4px; }
+
+  /* 右侧输出 */
+  .outputs { width: 200px; display: flex; flex-direction: column; justify-content: center; gap: 28px; padding-left: 10px; }
+  .output-item { }
+  .output-item .label { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+  .output-item .desc { font-size: 11px; color: #555; }
+  .output-arrow { display: flex; align-items: center; gap: 6px; }
+  .output-arrow .arrow-line { width: 40px; height: 2px; background: #333; position: relative; }
+  .output-arrow .arrow-line::after { content: ''; position: absolute; right: -6px; top: -4px; width: 0; height: 0; border-left: 8px solid #333; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+
+  /* 标注线 */
+  .annotation { font-size: 10px; color: #888; }
+
+  /* 下面说明区 */
+  .section-title { font-size: 16px; font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 4px; margin-bottom: 12px; margin-top: 25px; }
+  .reason-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .reason-table td { padding: 10px 14px; border: 1px solid #ddd; vertical-align: top; }
+  .reason-table td:first-child { font-weight: bold; width: 28%; background: #f5f5f5; }
+  .reason-table td:nth-child(2) { width: 72%; }
+
+  /* LED 颜色块 */
+  .led-green { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #34a853; vertical-align: middle; margin-right: 2px; }
+  .led-red { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #ea4335; vertical-align: middle; margin-right: 2px; }
+
+  @media print {
+    body { padding: 10px; }
+    .diagram { min-height: 300px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>秒表系统输入输出框图</h1>
+<p class="subtitle">逻辑图 &mdash; 第1部分：核心板 + 底板的系统输入输出</p>
+
+<!-- ==================== 主图 ==================== -->
+<div class="diagram">
+
+  <!-- 左侧输入 -->
+  <div class="inputs">
+    <div class="input-item">
+      <div class="input-arrow">
+        <div class="label">Type-C 线</div>
+        <div class="arrow-line"></div>
+      </div>
+      <div class="desc">5V供电 + JTAG下载</div>
+      <div class="annotation">(核心板自带晶振、电源、Flash)</div>
+    </div>
+
+    <div class="input-item">
+      <div class="input-arrow">
+        <div class="label">拨动开关1</div>
+        <div class="arrow-line"></div>
+      </div>
+      <div class="desc">清零 / 启动计数</div>
+      <div class="annotation">"清零"侧&rarr;显示00:00 | "启动"侧&rarr;开始计时</div>
+    </div>
+
+    <div class="input-item">
+      <div class="input-arrow">
+        <div class="label">拨动开关2</div>
+        <div class="arrow-line"></div>
+      </div>
+      <div class="desc">暂停 / 恢复计数</div>
+      <div class="annotation">"暂停"侧&rarr;冻结显示 | "恢复"侧&rarr;继续计时</div>
+    </div>
+  </div>
+
+  <!-- 中间板子 -->
+  <div class="board">
+    <div class="board-title">秒表电路板</div>
+
+    <div class="core-board">
+      <div class="title">&#9632; GW1N-UV9EQ144 核心板 &nbsp;(90&times;60mm)</div>
+      <div class="builtin">自带：50MHz晶振 | Flash存储 | 电源管理 | Type-C接口</div>
+
+      <div class="modules">
+        <div class="module">秒脉冲发生器 (clk_div)<br><span class="annotation">50MHz &rarr; 1Hz</span></div>
+        <div class="module-flow">&#8595; clk_1Hz</div>
+        <div class="module">60进制计数器 (counter_60)<br><span class="annotation">00:00 ~ 59:59 BCD码</span></div>
+        <div class="module-flow">&#8595; BCD[15:0]</div>
+        <div class="module">显示译码器 (seg_decoder)<br><span class="annotation">BCD码 &rarr; 段选 + 位选</span></div>
+      </div>
+    </div>
+
+    <div class="base-board">
+      <div class="title">&#9633; 底板 (80&times;80mm) &mdash; 在核心板下方，排针排母连接</div>
+      <div class="content">底板器件：2&times;开关 + 1&times;数码管 + <span class="led-green"></span>绿色LED + <span class="led-red"></span>红色LED + 电阻 + S8550三极管</div>
+      <div class="content">底板取电：5V 和 3.3V 均从核心板排针引出</div>
+    </div>
+  </div>
+
+  <!-- 右侧输出 -->
+  <div class="outputs">
+    <div class="output-item">
+      <div class="output-arrow">
+        <div class="arrow-line"></div>
+        <div class="label">4位共阳数码管</div>
+      </div>
+      <div class="desc">显示 mm:ss</div>
+      <div class="annotation">范围 00:00 ~ 59:59</div>
+    </div>
+
+    <div class="output-item">
+      <div class="output-arrow">
+        <div class="arrow-line"></div>
+        <div class="label"><span class="led-green"></span> 绿色LED</div>
+      </div>
+      <div class="desc">亮 = 正在计数</div>
+      <div class="annotation">"绿灯行" — 计时器在跑</div>
+    </div>
+
+    <div class="output-item">
+      <div class="output-arrow">
+        <div class="arrow-line"></div>
+        <div class="label"><span class="led-red"></span> 红色LED</div>
+      </div>
+      <div class="desc">亮 = 暂停中</div>
+      <div class="annotation">"红灯停" — 计时器停了</div>
+      <div class="annotation" style="margin-top:8px;">两个都灭 = 待机 (IDLE态)</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== 设计理由 ==================== -->
+
+<div class="section-title">设计理由说明</div>
+
+<table class="reason-table">
+  <tr>
+    <td>1. 为什么外部输入只有一根 Type-C 线？</td>
+    <td>核心板自带 <b>50MHz 晶振</b>、电源管理、Flash 存储。底板不需要额外供电口或晶振。Type-C 线既是 5V 电源又是 JTAG 下载通道，一根线解决所有。</td>
+  </tr>
+  <tr>
+    <td>2. 为什么用拨动开关而不是轻触按键？</td>
+    <td>清零和暂停需要<b>保持状态</b>。拨动开关的物理位置（左/右）让用户一眼看到当前模式。轻触按键按下就弹回，无法表示"当前是清零态还是启动态"。</td>
+  </tr>
+  <tr>
+    <td>3. 为什么用红绿两颗 LED？</td>
+    <td><span class="led-green"></span>绿灯亮=正在计数（绿灯行），<span class="led-red"></span>红灯亮=暂停中（红灯停），<b>两个都灭=待机</b>。跟交通灯直觉完全一致，任何人看到立刻理解状态。2颗LED足够，不需要秒脉冲闪灯。</td>
+  </tr>
+  <tr>
+    <td>4. 为什么用 4 位数码管？</td>
+    <td>时间格式 mm:ss 刚好 4 位数字。共阳极数码管 SR410361N 是学校提供的材料，驱动简单、亮度高、符合课设要求。</td>
+  </tr>
+  <tr>
+    <td>5. 预置值怎么实现？</td>
+    <td>设计方案提示明确：<b>通过重新下载程序给时钟设置初始值</b>。改 Verilog 参数 &rarr; 重新综合下载到 Flash &rarr; 上电启动即从预设值开始计时。不增加底板硬件复杂度。</td>
+  </tr>
+  <tr>
+    <td>6. 核心板和底板怎么连接？</td>
+    <td>核心板 90&times;60mm，底板 80&times;80mm。核心板<b>架在底板上方</b>，通过 2&times;20P 排针排母连接。底板从核心板排针取 5V 和 3.3V 供电。</td>
+  </tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>底板的输入与输出 — 逻辑图 第2部分</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Microsoft YaHei",sans-serif; padding:30px; max-width:1050px; margin:0 auto; background:#fff; }
+  h1 { text-align:center; font-size:22px; margin-bottom:4px; }
+  .sub { text-align:center; font-size:12px; color:#888; margin-bottom:22px; }
+  h2 { font-size:17px; margin:40px 0 16px; border-left:5px solid #e37400; padding-left:10px; }
+  .sig-table { width:100%; border-collapse:collapse; font-size:12.5px; margin:15px 0; }
+  .sig-table th { background:#444; color:#fff; padding:9px 10px; text-align:left; }
+  .sig-table td { padding:9px 10px; border:1px solid #ddd; vertical-align:top; }
+  .block { border:2px solid #ddd; border-radius:10px; padding:20px; margin-bottom:22px; background:#fafafa; }
+  .block h3 { font-size:14px; margin-bottom:14px; }
+  .row { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .diagram-box { flex:0 0 auto; min-width:380px; background:#fff; border:2px solid #bbb; border-radius:8px; padding:16px; }
+  .explain { flex:1; min-width:300px; }
+  .principle { background:#fff; border:1px solid #ddd; border-radius:6px; padding:12px 15px; margin-bottom:10px; font-size:13px; line-height:1.9; }
+  .principle strong { color:#c5221f; }
+  .principle .q { color:#1a73e8; font-weight:bold; }
+  svg { display:block; }
+  svg text { font-family:"Microsoft YaHei","SimHei",sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>底板的输入与输出</h1>
+<p class="sub">逻辑图 第2部分：底板电路连接 &middot; 全板统一 3.3V 供电（排母无 5V 输出）</p>
+
+<h2>一、信号汇总</h2>
+
+<table class="sig-table">
+<tr><th>信号名</th><th>方向</th><th>底板电路处理</th></tr>
+<tr><td>3.3V</td><td>核心板排母 → 底板</td><td>走线分到 4 个 S8550 发射极 + 2 个开关上拉电阻</td></tr>
+<tr><td>GND</td><td>核心板排母 → 底板</td><td>底板覆铜铺地，所有器件接地端连到这片铜</td></tr>
+<tr><td>SEG[7:0]</td><td>核心板排母 → 底板</td><td>8 路各串 470Ω 限流电阻 → 数码管阴极（a~g,dp）</td></tr>
+<tr><td>DIG[3:0]</td><td>核心板排母 → 底板</td><td>4 路各串 4.7KΩ → S8550 基极，S8550 发射极接 3.3V，集电极接数码管阳极</td></tr>
+<tr><td>LED_RUN</td><td>核心板排母 → 底板</td><td>串 470Ω → 绿色 LED → GND</td></tr>
+<tr><td>LED_PAUSE</td><td>核心板排母 → 底板</td><td>串 470Ω → 红色 LED → GND</td></tr>
+<tr><td>SW_RST</td><td>底板 → 核心板排母</td><td>拨动开关1 → 闭合=通 GND(0V)，断开=经 10KΩ 上拉到 3.3V(高)</td></tr>
+<tr><td>SW_PAUSE</td><td>底板 → 核心板排母</td><td>拨动开关2 → 闭合=通 GND(0V)，断开=经 10KΩ 上拉到 3.3V(高)</td></tr>
+</table>
+
+<!-- A: 开关 -->
+<h2>二、功能块A：开关电路 — SW_RST, SW_PAUSE</h2>
+<div class="block"><h3>拨动开关 ×2 ＋ 10KΩ 上拉电阻 ×2</h3>
+<div class="row">
+<div class="diagram-box">
+<svg width="360" height="260" viewBox="0 0 360 260">
+  <line x1="40" y1="30" x2="340" y2="30" stroke="#34a853" stroke-width="2"/>
+  <text x="340" y="34" font-size="12" fill="#34a853" font-weight="bold">3.3V (排母)</text>
+  <line x1="40" y1="220" x2="340" y2="220" stroke="#666" stroke-width="2"/>
+  <text x="340" y="224" font-size="11" fill="#666">GND</text>
+  <line x1="160" y1="30" x2="160" y2="80" stroke="#333" stroke-width="1.5"/>
+  <rect x="148" y="80" width="24" height="50" fill="#fff" stroke="#333" stroke-width="1.5" rx="2"/>
+  <text x="160" y="110" font-size="11" fill="#c5221f" text-anchor="middle" font-weight="bold">10KΩ</text>
+  <line x1="160" y1="130" x2="160" y2="155" stroke="#333" stroke-width="1.5"/>
+  <line x1="160" y1="145" x2="310" y2="145" stroke="#1a73e8" stroke-width="2"/>
+  <text x="315" y="149" font-size="12" fill="#1a73e8" font-weight="bold">SW_RST</text>
+  <text x="290" y="164" font-size="10" fill="#888">→ 排母 → 核心板</text>
+  <rect x="132" y="155" width="56" height="36" fill="#e8e8e8" stroke="#555" stroke-width="2" rx="4"/>
+  <rect x="136" y="160" width="20" height="26" fill="#888" stroke="#555" stroke-width="1" rx="3"/>
+  <text x="146" y="183" font-size="9" fill="#fff" text-anchor="middle">拨</text>
+  <line x1="146" y1="191" x2="146" y2="220" stroke="#555" stroke-width="1.5"/>
+  <circle cx="146" cy="220" r="3" fill="#999"/>
+  <text x="200" y="175" font-size="11" fill="#555">SK-12D07VG3</text>
+  <rect x="252" y="55" width="95" height="50" fill="#fce8e6" stroke="#ea4335" stroke-width="1" rx="4"/>
+  <text x="300" y="72" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">开关断开</text>
+  <text x="300" y="88" font-size="10" fill="#c5221f" text-anchor="middle">10KΩ拉到3.3V</text>
+  <text x="300" y="102" font-size="10" fill="#c5221f" text-anchor="middle">SW_RST = 高电平</text>
+  <rect x="252" y="160" width="95" height="50" fill="#e8f5e9" stroke="#34a853" stroke-width="1" rx="4"/>
+  <text x="300" y="177" font-size="10" fill="#1b5e20" text-anchor="middle" font-weight="bold">开关闭合</text>
+  <text x="300" y="193" font-size="10" fill="#1b5e20" text-anchor="middle">直连GND(0V)</text>
+  <text x="300" y="207" font-size="10" fill="#1b5e20" text-anchor="middle">SW_RST = 低电平</text>
+</svg>
+<p style="text-align:center;font-size:11px;color:#888;margin-top:4px;">&times;2 路，另一路为 SW_PAUSE</p>
+</div>
+<div class="explain">
+<div class="principle"><span class="q">为什么需要上拉电阻？</span><br>开关断开时导线悬空，电平随机跳动。<strong>10KΩ 接 3.3V</strong>，断开时稳在 3.3V。闭合时 GND 拽到 0V，电阻仅流过 3.3÷10000=<strong>0.33mA</strong>。</div>
+<div class="principle"><span class="q">为什么是 10KΩ？</span><br>太小费电，太大抗干扰差。10KΩ 是标准值。</div>
+</div>
+</div></div>
+
+<!-- B: LED -->
+<h2>三、功能块B：LED 指示电路 — LED_RUN, LED_PAUSE</h2>
+<div class="block"><h3>绿色 LED ×1 ＋ 红色 LED ×1 ＋ 470Ω 电阻 ×2</h3>
+<div class="row">
+<div class="diagram-box">
+<svg width="360" height="230" viewBox="0 0 360 230">
+  <text x="20" y="22" font-size="12" fill="#1a73e8" font-weight="bold">核心板排母</text>
+  <line x1="20" y1="30" x2="100" y2="30" stroke="#1a73e8" stroke-width="2"/>
+  <text x="50" y="44" font-size="9" fill="#888" text-anchor="middle">高电平=3.3V / 低电平=0V</text>
+  <line x1="100" y1="30" x2="115" y2="30" stroke="#333" stroke-width="1.5"/>
+  <rect x="115" y="18" width="22" height="24" fill="#fff" stroke="#333" stroke-width="1.5" rx="2"/>
+  <text x="126" y="34" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">470Ω</text>
+  <line x1="137" y1="30" x2="155" y2="30" stroke="#333" stroke-width="1.5"/>
+  <polygon points="155,18 175,18 175,42 155,42" fill="#e8f5e9" stroke="#34a853" stroke-width="2"/>
+  <line x1="157" y1="22" x2="173" y2="38" stroke="#34a853" stroke-width="1.5"/>
+  <line x1="173" y1="22" x2="157" y2="38" stroke="#34a853" stroke-width="1.5"/>
+  <polygon points="164,38 168,48 160,48" fill="#34a853"/>
+  <line x1="175" y1="30" x2="200" y2="30" stroke="#34a853" stroke-width="1.5"/>
+  <text x="165" y="58" font-size="10" fill="#34a853" text-anchor="middle" font-weight="bold">LED_RUN (绿)</text>
+  <line x1="200" y1="30" x2="200" y2="90" stroke="#666" stroke-width="1.5"/>
+  <line x1="180" y1="90" x2="220" y2="90" stroke="#666" stroke-width="2"/>
+  <text x="226" y="94" font-size="11" fill="#666">GND</text>
+  <line x1="100" y1="30" x2="100" y2="120" stroke="#333" stroke-width="1.5"/>
+  <line x1="100" y1="120" x2="115" y2="120" stroke="#333" stroke-width="1.5"/>
+  <rect x="115" y="108" width="22" height="24" fill="#fff" stroke="#333" stroke-width="1.5" rx="2"/>
+  <text x="126" y="124" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">470Ω</text>
+  <line x1="137" y1="120" x2="155" y2="120" stroke="#333" stroke-width="1.5"/>
+  <polygon points="155,108 175,108 175,132 155,132" fill="#fce8e6" stroke="#ea4335" stroke-width="2"/>
+  <line x1="157" y1="112" x2="173" y2="128" stroke="#ea4335" stroke-width="1.5"/>
+  <line x1="173" y1="112" x2="157" y2="128" stroke="#ea4335" stroke-width="1.5"/>
+  <polygon points="164,128 168,138 160,138" fill="#ea4335"/>
+  <line x1="175" y1="120" x2="200" y2="120" stroke="#ea4335" stroke-width="1.5"/>
+  <text x="165" y="148" font-size="10" fill="#ea4335" text-anchor="middle" font-weight="bold">LED_PAUSE (红)</text>
+  <line x1="200" y1="120" x2="200" y2="90" stroke="#666" stroke-width="1.5"/>
+  <rect x="240" y="55" width="108" height="72" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="294" y="74" font-size="11" fill="#333" text-anchor="middle" font-weight="bold">限流计算</text>
+  <text x="294" y="94" font-size="11" fill="#333" text-anchor="middle">LED 压降 ≈ 2V</text>
+  <text x="294" y="112" font-size="11" fill="#c5221f" text-anchor="middle" font-weight="bold">I = (3.3-2)÷470</text>
+  <text x="294" y="126" font-size="11" fill="#c5221f" text-anchor="middle" font-weight="bold">= 2.8mA</text>
+</svg>
+<p style="text-align:center;font-size:11px;color:#888;margin-top:4px;">两路电路相同，仅 LED 颜色不同</p>
+</div>
+<div class="explain">
+<div class="principle"><span class="q">为什么串 470Ω？</span><br>LED 直接接 3.3V 会烧。压降≈2V → 电阻承压 1.3V → <strong>2.8mA</strong>。安全（FPGA I/O 上限 8~16mA），亮度适中。</div>
+<div class="principle"><span class="q">为什么不需要三极管？</span><br>一颗 LED 仅 2.8mA，FPGA I/O 直接驱动。数码管位选需约 18mA → 才需要三极管（见功能块D）。</div>
+</div>
+</div></div>
+
+<!-- C: 段选 -->
+<h2>四、功能块C：数码管段选电路 — SEG[7:0]</h2>
+<div class="block"><h3>470Ω 电阻 ×8</h3>
+<div class="row">
+<div class="diagram-box">
+<svg width="380" height="290" viewBox="0 0 380 290">
+  <text x="20" y="18" font-size="12" fill="#1a73e8" font-weight="bold">核心板排母 (SEG 8路)</text>
+  <line x1="30" y1="35" x2="60" y2="35" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="40" y="48" font-size="9" fill="#888" text-anchor="middle">SEG_a</text>
+  <rect x="60" y="23" width="20" height="24" fill="#fff" stroke="#333" stroke-width="1.5" rx="2"/>
+  <text x="70" y="39" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">470Ω</text>
+  <line x1="80" y1="35" x2="120" y2="35" stroke="#333" stroke-width="1.5"/>
+  <rect x="120" y="20" width="130" height="30" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5" rx="4"/>
+  <text x="185" y="40" font-size="11" fill="#1a73e8" text-anchor="middle" font-weight="bold">数码管 a 段 (阴极)</text>
+  <polygon points="130,55 140,65 130,75 120,65" fill="#34a853" stroke="#34a853" stroke-width="1"/>
+  <text x="145" y="70" font-size="9" fill="#888">LED</text>
+  <line x1="185" y1="50" x2="185" y2="80" stroke="#34a853" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="190" y="76" font-size="10" fill="#34a853" font-weight="bold">阳极 ← 3.3V (S8550 来)</text>
+  <rect x="30" y="95" width="230" height="55" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="145" y="112" font-size="11" fill="#333" text-anchor="middle" font-weight="bold">导通条件</text>
+  <text x="145" y="128" font-size="10" fill="#333" text-anchor="middle">阳极 − 阴极 > LED 压降(≈2V)</text>
+  <text x="145" y="144" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">SEG_a=0V: 3.3−0=3.3V > 2V → 亮</text>
+  <text x="145" y="158" font-size="10" fill="#888" text-anchor="middle">SEG_a=3.3V: 3.3−3.3=0V → 灭 ✓(完全关断)</text>
+  <text x="30" y="185" font-size="10" fill="#888">&times;8 路：SEG_a, SEG_b, SEG_c, SEG_d, SEG_e, SEG_f, SEG_g, SEG_dp</text>
+  <rect x="30" y="200" width="330" height="36" fill="#fff3cd" stroke="#f9ab00" stroke-width="1" rx="4"/>
+  <text x="195" y="216" font-size="10" fill="#e37400" text-anchor="middle">8 条段选线被 4 位共享。同一时刻仅一位亮，段选只服务当前位。</text>
+  <text x="195" y="230" font-size="10" fill="#e37400" text-anchor="middle">每段独立串 470Ω：无论亮多少段，每段电流恒定，亮度均匀。</text>
+  <rect x="30" y="245" width="330" height="32" fill="#e8f5e9" stroke="#34a853" stroke-width="1" rx="4"/>
+  <text x="195" y="260" font-size="10" fill="#1b5e20" text-anchor="middle">3.3V 供电：FPGA 输出 3.3V 时 Vbe=0 → PNP 完全关断 → 无残影</text>
+  <text x="195" y="274" font-size="10" fill="#1b5e20" text-anchor="middle">段电流 = (3.3-2-0.1)÷470 ≈ 2.6mA，4位扫描平均 ≈ 0.65mA/段</text>
+</svg>
+</div>
+<div class="explain">
+<div class="principle"><span class="q">为什么每段独立串电阻？</span><br>4 位的同名段共享同一条线。只在阳极串电阻 → "1"（2段亮）电流大、"8"（7段亮）电流小 → 亮度不均。<strong>每段各串 470Ω：电流恒定，亮度均匀。</strong></div>
+<div class="principle"><span class="q">3.3V 供电的利弊</span><br>好处：FPGA 输出 3.3V 时阳极也是 3.3V → Vbe=0 → <strong>PNP 完全关断，零残影</strong>。<br>代价：段电流 2.6mA，比 5V 时暗。4位动态扫描平均 0.65mA/段，室内可辨识。<br>如需更亮 → 可减小段选电阻（不推荐，物料无更小值）。</div>
+</div>
+</div></div>
+
+<!-- D: 位选 -->
+<h2>五、功能块D：数码管位选电路 — DIG[3:0]</h2>
+<div class="block"><h3>S8550 PNP 三极管 ×4 ＋ 4.7KΩ 电阻 ×4</h3>
+<div class="row">
+<div class="diagram-box">
+<svg width="420" height="340" viewBox="0 0 420 340">
+  <line x1="30" y1="20" x2="380" y2="20" stroke="#34a853" stroke-width="2"/>
+  <text x="385" y="24" font-size="12" fill="#34a853" font-weight="bold">3.3V (排母)</text>
+  <line x1="220" y1="20" x2="220" y2="55" stroke="#34a853" stroke-width="2"/>
+  <circle cx="220" cy="95" r="28" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2.5"/>
+  <text x="220" y="91" font-size="13" fill="#1a73e8" text-anchor="middle" font-weight="bold">S8550</text>
+  <text x="220" y="106" font-size="10" fill="#1a73e8" text-anchor="middle">PNP</text>
+  <rect x="198" y="52" width="22" height="16" fill="#fff" stroke="#c5221f" stroke-width="1" rx="3"/>
+  <text x="209" y="64" font-size="11" fill="#c5221f" text-anchor="middle" font-weight="bold">E</text>
+  <text x="160" y="64" font-size="10" fill="#c5221f">发射极 · 电流入口</text>
+  <line x1="220" y1="123" x2="220" y2="155" stroke="#c5221f" stroke-width="2"/>
+  <rect x="198" y="155" width="22" height="16" fill="#fff" stroke="#c5221f" stroke-width="1" rx="3"/>
+  <text x="209" y="167" font-size="11" fill="#c5221f" text-anchor="middle" font-weight="bold">C</text>
+  <text x="227" y="168" font-size="10" fill="#c5221f">集电极 · 电流出口</text>
+  <line x1="220" y1="171" x2="220" y2="200" stroke="#c5221f" stroke-width="2"/>
+  <rect x="150" y="200" width="140" height="40" fill="#fff3e0" stroke="#e37400" stroke-width="1.5" rx="4"/>
+  <text x="220" y="218" font-size="11" fill="#e37400" text-anchor="middle" font-weight="bold">数码管阳极</text>
+  <text x="220" y="234" font-size="9" fill="#888" text-anchor="middle">(各位独立，共 4 位)</text>
+  <line x1="180" y1="95" x2="150" y2="95" stroke="#1a73e8" stroke-width="2"/>
+  <rect x="126" y="86" width="22" height="16" fill="#fff" stroke="#1a73e8" stroke-width="1" rx="3"/>
+  <text x="137" y="98" font-size="11" fill="#1a73e8" text-anchor="middle" font-weight="bold">B</text>
+  <text x="100" y="80" font-size="10" fill="#1a73e8">基极</text>
+  <rect x="80" y="83" width="22" height="24" fill="#fff" stroke="#333" stroke-width="1.5" rx="2"/>
+  <text x="91" y="99" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">4.7KΩ</text>
+  <line x1="60" y1="95" x2="80" y2="95" stroke="#1a73e8" stroke-width="2"/>
+  <line x1="20" y1="95" x2="60" y2="95" stroke="#1a73e8" stroke-width="2"/>
+  <text x="18" y="90" font-size="12" fill="#1a73e8" font-weight="bold">DIG[0]</text>
+  <text x="18" y="110" font-size="10" fill="#888">来自排母</text>
+  <rect x="260" y="50" width="148" height="55" fill="#fce8e6" stroke="#ea4335" stroke-width="1" rx="4"/>
+  <text x="334" y="68" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">主电流路径 (≈18mA)</text>
+  <text x="334" y="84" font-size="10" fill="#c5221f" text-anchor="middle">3.3V → E → C → 数码管阳极</text>
+  <text x="334" y="98" font-size="10" fill="#c5221f" text-anchor="middle">→ LED段 → 470Ω → SEG → GND</text>
+  <text x="334" y="110" font-size="9" fill="#888" text-anchor="middle">(7段全亮≈18mA)</text>
+  <rect x="260" y="115" width="148" height="55" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1" rx="4"/>
+  <text x="334" y="133" font-size="10" fill="#1a73e8" text-anchor="middle" font-weight="bold">控制电流路径 (≈0.55mA)</text>
+  <text x="334" y="149" font-size="10" fill="#1a73e8" text-anchor="middle">3.3V → E → B → 4.7KΩ → DIG[0]</text>
+  <text x="334" y="165" font-size="10" fill="#1a73e8" text-anchor="middle">→ FPGA(拉低=0V) → GND</text>
+  <text x="334" y="177" font-size="9" fill="#888" text-anchor="middle">Ib=(3.3-0.7)÷4.7K≈0.55mA</text>
+  <rect x="260" y="185" width="148" height="48" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="334" y="202" font-size="10" fill="#333" text-anchor="middle" font-weight="bold">放大关系</text>
+  <text x="334" y="218" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">Ic ≈ Ib × hFE</text>
+  <text x="334" y="232" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">0.55mA × 100 = 55mA</text>
+  <text x="334" y="244" font-size="9" fill="#888" text-anchor="middle">(远超 18mA，安全饱和)</text>
+  <text x="30" y="270" font-size="10" fill="#888">&times;4 路：DIG[0]=分十, DIG[1]=分个, DIG[2]=秒十, DIG[3]=秒个</text>
+  <text x="30" y="286" font-size="10" fill="#888">每路一个 S8550 + 一个 4.7KΩ。3.3V 和 GND 公用。</text>
+  <rect x="30" y="298" width="360" height="30" fill="#e8f5e9" stroke="#34a853" stroke-width="1" rx="4"/>
+  <text x="210" y="310" font-size="11" fill="#1b5e20" text-anchor="middle">DIG=0V → 导通(亮) &emsp;|&emsp; DIG=3.3V → 关断(灭) → Vbe=0 → 完全关断，无残影</text>
+  <text x="210" y="324" font-size="11" fill="#1b5e20" text-anchor="middle"></text>
+</svg>
+</div>
+<div class="explain">
+<div class="principle"><span class="q">为什么必须用三极管？</span><br>一位全亮（"8"）：7段×2.6mA≈<strong>18mA</strong>，仍在 FPGA I/O 上限边缘。用三极管更安全：FPGA 只供 <strong>0.55mA</strong> 基极电流，三极管放大 ≥100 倍 → 集电极可出 ≥55mA。</div>
+<div class="principle"><span class="q">为什么用 PNP？</span><br>共阳极数码管——阳极从 3.3V 取电。PNP 做"高侧开关"：E 接 3.3V，C 接负载。DIG=0V → 导通；DIG=3.3V → 关断。</div>
+<div class="principle"><span class="q">3.3V 供电的好处：PNP 完全关断</span><br>DIG=3.3V 时，Vbe=3.3−3.3=<strong>0V</strong>，小于 PNP 导通阈值 0.7V → <strong>完全关断，无残影</strong>。这是用 3.3V 供电相比 5V 的最大优势。</div>
+</div>
+</div></div>
+
+<!-- E: 供电 -->
+<h2>六、功能块E：底板供电 — 3.3V, GND</h2>
+<div class="block"><h3>核心板排母仅提供 3.3V 和 GND（I/O 电平统一 3.3V）</h3>
+<div class="row">
+<div class="diagram-box">
+<svg width="420" height="200" viewBox="0 0 420 200">
+  <rect x="20" y="30" width="130" height="80" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" rx="6"/>
+  <text x="85" y="54" font-size="12" fill="#1a73e8" text-anchor="middle" font-weight="bold">核心板排母</text>
+  <text x="85" y="74" font-size="10" fill="#555" text-anchor="middle">3.3V 引脚</text>
+  <text x="85" y="92" font-size="10" fill="#555" text-anchor="middle">GND 引脚</text>
+  <line x1="150" y1="55" x2="190" y2="55" stroke="#34a853" stroke-width="2"/>
+  <rect x="190" y="35" width="110" height="42" fill="#e8f5e9" stroke="#34a853" stroke-width="1.5" rx="4"/>
+  <text x="245" y="52" font-size="10" fill="#34a853" text-anchor="middle" font-weight="bold">3.3V 网络</text>
+  <text x="245" y="68" font-size="9" fill="#555" text-anchor="middle">4× S8550 E极 + 2× 开关上拉</text>
+  <line x1="150" y1="80" x2="190" y2="100" stroke="#666" stroke-width="2"/>
+  <rect x="190" y="85" width="110" height="42" fill="#eee" stroke="#666" stroke-width="1.5" rx="4"/>
+  <text x="245" y="102" font-size="10" fill="#666" text-anchor="middle" font-weight="bold">GND 网络</text>
+  <text x="245" y="118" font-size="9" fill="#555" text-anchor="middle">覆铜铺地，所有器件接地</text>
+  <rect x="20" y="125" width="380" height="65" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="210" y="145" font-size="11" fill="#333" text-anchor="middle" font-weight="bold">全板统一 3.3V 的设计结果</text>
+  <line x1="40" y1="155" x2="380" y2="155" stroke="#ddd" stroke-width="1"/>
+  <text x="40" y="172" font-size="10" fill="#34a853">所有器件（数码管、LED、开关）统一用 3.3V，不存在 5V 和 3.3V 混用的问题。</text>
+  <text x="40" y="186" font-size="10" fill="#34a853">PNP 关断时 Vbe=0 → 彻底关断、无残影。代价：数码管亮度略低。</text>
+</svg>
+</div>
+<div class="explain">
+<div class="principle"><span class="q">为什么底板不自带电源？</span><br>核心板已有完整供电链路。底板从排母取电，不增加电源芯片。</div>
+<div class="principle"><span class="q">全板 3.3V 的影响</span><br>好处：电路更简单（无需区分 5V/3.3V 网络），PNP 关断可靠。<br>代价：段选电流 2.6mA（vs 5V 的 5.7mA），数码管偏暗但室内可用。<br>FPGA I/O 电平匹配：开关、LED、段选、位选全部 3.3V，无需电平转换。</div>
+</div>
+</div></div>
+
+<!-- 总结 -->
+<h2>七、总结</h2>
+<table class="sig-table">
+<tr><th>底板面对的问题</th><th>底板的解决方式</th><th>器件及参数</th></tr>
+<tr><td>开关断开时电平悬空，会乱跳</td><td>接上拉电阻，断开时稳在 3.3V</td><td>10KΩ ×2</td></tr>
+<tr><td>LED 和数码管段不限制电流会烧</td><td>每条线串限流电阻</td><td>470Ω ×10（8段选+2LED）</td></tr>
+<tr><td>数码管全亮需约 18mA，排母信号供不了</td><td>三极管放大：小电流(0.55mA)控制大电流</td><td>S8550 PNP ×4 + 4.7KΩ ×4</td></tr>
+</table>
+
+</body>
+</html>

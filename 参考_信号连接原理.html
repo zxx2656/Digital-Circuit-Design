@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>信号来源和去路的原理</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Microsoft YaHei",sans-serif; padding:25px; color:#222; max-width:1000px; margin:0 auto; }
+  h1 { text-align:center; font-size:22px; margin-bottom:22px; }
+  h2 { font-size:17px; margin:28px 0 12px; border-left:4px solid #e37400; padding-left:10px; }
+
+  .rule { background:#e8f5e9; border-left:4px solid #34a853; padding:12px 16px; margin:10px 0; border-radius:0 6px 6px 0; font-size:14px; }
+  .rule b { color:#1b5e20; }
+
+  .chain { display:flex; align-items:center; gap:0; flex-wrap:wrap; margin:14px 0; font-size:13px; }
+  .chain .node { border:2px solid #555; border-radius:5px; padding:6px 12px; background:#fff; text-align:center; white-space:nowrap; }
+  .chain .node.src { border-color:#1a73e8; background:#e8f0fe; font-weight:bold; }
+  .chain .node.dst { border-color:#34a853; background:#e8f5e9; font-weight:bold; }
+  .chain .node.mid { border-color:#f9ab00; background:#fffde7; }
+  .chain .arrow-line { width:30px; height:2px; background:#555; position:relative; }
+  .chain .arrow-line::after { content:''; position:absolute; right:-5px; top:-3px; width:0; height:0; border-left:7px solid #555; border-top:4px solid transparent; border-bottom:4px solid transparent; }
+
+  .principle { border:2px solid #ddd; border-radius:8px; padding:14px; margin:12px 0; }
+  .principle h3 { font-size:14px; margin-bottom:8px; }
+  .principle p { font-size:13px; line-height:1.8; margin:4px 0; }
+
+  .two-col { display:flex; gap:16px; }
+  .two-col > div { flex:1; }
+
+  @media print { body { padding:8px; } }
+</style>
+</head>
+<body>
+
+<h1>信号连接原理：每个信号的来源和去路为什么这样选</h1>
+
+<p style="text-align:center;font-size:14px;color:#666;">
+  底层只有<b>三条根本规则</b>，每根信号线都是这三条规则的推论
+</p>
+
+<div class="rule"><b>规则1：电流必须有限制。</b> 任何 LED（数码管段、指示灯）不串电阻就会烧。电阻值 = (电压 - LED压降) &divide; 想要的电流。</div>
+<div class="rule"><b>规则2：FPGA 引脚很脆弱。</b> 单个 I/O 只能输出/吸入 8~16mA。超过就要用三极管放大。</div>
+<div class="rule"><b>规则3：输入端不能悬空。</b> 开关断开时，FPGA 输入引脚如果什么都不接，电平随机跳动。必须用上拉（或下拉）电阻固定电平。</div>
+
+<!-- ====== SEG ====== -->
+<h2>1. SEG[7:0]：FPGA &rarr; 470&Omega; &rarr; 数码管段选</h2>
+
+<div class="chain">
+  <div class="node src">FPGA<br>seg_decoder模块</div>
+  <div class="arrow-line"></div>
+  <div class="node mid">470&Omega;<br>&times;8</div>
+  <div class="arrow-line"></div>
+  <div class="node dst">数码管<br>a~g, dp 阴极</div>
+</div>
+
+<div class="principle">
+<h3>为什么从 FPGA 来？</h3>
+<p>数码管显示什么数字，是 FPGA 里的 seg_decoder 模块决定的。它把 BCD 码翻译成"哪几段亮、哪几段灭"，所以段选信号必然是从 FPGA 出来。</p>
+
+<h3>为什么要串 470&Omega;？</h3>
+<p><b>规则1：LED 必须限流。</b> 不加电阻 = 电流无限大 = LED 烧毁。加了 470&Omega;，电流 ≈ (5V - 2V) &divide; 470&Omega; &asymp; 6.4mA，安全。</p>
+
+<h3>为什么每段独立串电阻？</h3>
+<p>显示"1"亮2段，显示"8"亮7段。如果只在公共端串一个电阻，电流不固定——"1"比"8"亮3倍。每段独立限流，亮度均匀。</p>
+
+<h3>为什么不是从 3.3V 供电而是 5V？</h3>
+<p>数码管 LED 段压降约 2V。用 3.3V：剩余电压 3.3-2=1.3V，电阻上只剩 1.3V，电流太小或不稳定。用 5V：剩余 5-2=3V，有足够余量让电阻精确控制电流。</p>
+</div>
+
+
+<!-- ====== DIG ====== -->
+<h2>2. DIG[3:0]：FPGA &rarr; 4.7K&Omega; &rarr; S8550 &rarr; 数码管位选</h2>
+
+<div class="chain">
+  <div class="node src">FPGA<br>seg_decoder模块</div>
+  <div class="arrow-line"></div>
+  <div class="node mid">4.7K&Omega;<br>&times;4</div>
+  <div class="arrow-line"></div>
+  <div class="node mid">S8550<br>PNP三极管</div>
+  <div class="arrow-line"></div>
+  <div class="node dst">数码管<br>4位公共阳极</div>
+</div>
+
+<div class="principle">
+<h3>为什么从 FPGA 来？</h3>
+<p>数码管 4 位轮流亮（动态扫描），"现在亮第几位"是由 seg_decoder 里的扫描计数器决定的，所以位选信号从 FPGA 出。</p>
+
+<h3>为什么中间要加 S8550？</h3>
+<p><b>规则2：FPGA 驱不动。</b> 一位数码管亮 7 段时，总电流 = 7 &times; 6.4mA &asymp; <b>45mA</b>。FPGA 单个 I/O 只能出 8~16mA。<b>不经过三极管，FPGA 引脚会烧。</b> S8550 集电极电流可达 500mA，45mA 轻松。</p>
+
+<h3>为什么用 PNP 而不是 NPN？</h3>
+<p>共阳极数码管——阳极是公共端，需要从 5V 给电。PNP 天然做"高侧开关"：发射极接 5V，集电极输出给负载。FPGA 输出低电平时 PNP 导通，5V 流到数码管阳极。如果用 NPN，要在低侧（阴极）开关，但公共端是阳极，不匹配。</p>
+
+<h3>基极为什么串 4.7K&Omega;？</h3>
+<p>限流。FPGA 输出低(0V)时，基极电流 = (5-0.7) &divide; 4.7K &asymp; 0.9mA。S8550 放大倍数 &ge; 100，集电极可输出 &ge; 90mA，远超 45mA 需求，保证饱和导通。</p>
+</div>
+
+
+<!-- ====== LED ====== -->
+<h2>3. LED_RUN / LED_PAUSE：FPGA &rarr; 470&Omega; &rarr; LED &rarr; GND</h2>
+
+<div class="chain">
+  <div class="node src">FPGA<br>fsm_ctrl模块</div>
+  <div class="arrow-line"></div>
+  <div class="node mid">470&Omega;</div>
+  <div class="arrow-line"></div>
+  <div class="node dst">绿色/红色<br>LED</div>
+  <div class="arrow-line"></div>
+  <div class="node dst">GND</div>
+</div>
+
+<div class="principle">
+<h3>为什么从 FPGA 来？</h3>
+<p>LED 什么时候亮（绿灯=计数中、红灯=暂停中），是 fsm_ctrl 状态机决定的。状态机在 FPGA 里面，所以控制信号从 FPGA 出。</p>
+
+<h3>为什么只串 470&Omega; 不需要三极管？</h3>
+<p>一颗 LED 只需要约 3mA 电流。(3.3V - 2V) &divide; 470&Omega; &asymp; 2.8mA，<b>在 FPGA I/O 的 8~16mA 安全范围内</b>，不需要三极管。</p>
+
+<h3>为什么串 470&Omega; 而不是 10K&Omega;？</h3>
+<p>10K&Omega;：(3.3-2)/10K = 0.13mA，LED 几乎不亮。470&Omega; 给出 2.8mA，亮度正好。</p>
+</div>
+
+
+<!-- ====== SW ====== -->
+<h2>4. SW_RST / SW_PAUSE：开关 &rarr; 10K&Omega; 上拉 &rarr; FPGA 输入</h2>
+
+<div class="chain">
+  <div class="node src">手指拨动<br>开关</div>
+  <div class="arrow-line"></div>
+  <div class="node mid">闭合&rarr;GND<br>断开&rarr;10K&Omega;上拉<br>到3.3V</div>
+  <div class="arrow-line"></div>
+  <div class="node dst">FPGA<br>输入引脚</div>
+  <div class="arrow-line"></div>
+  <div class="node dst">fsm_ctrl<br>读取状态</div>
+</div>
+
+<div class="principle">
+<h3>为什么去 FPGA？</h3>
+<p>开关的状态决定 FPGA 内部状态机跳转（清零&rarr;IDLE、启动&rarr;COUNT、暂停&rarr;PAUSE）。FPGA 必须读到开关电平才能做判断。</p>
+
+<h3>为什么需要上拉电阻？</h3>
+<p><b>规则3：输入不能悬空。</b> 开关断开时，FPGA 输入引脚悬空——天线一样接收电磁干扰，电平在 0 和 1 之间乱跳。加了 10K&Omega; 上拉到 3.3V，断开时稳定在 1。</p>
+
+<h3>为什么是 10K&Omega;？</h3>
+<p>太大（100K）&rarr; 抗干扰弱。太小（1K）&rarr; 闭合时电流 3.3mA，浪费电。10K&Omega; 平衡刚好。</p>
+
+<h3>为什么上拉到 3.3V 不是 5V？</h3>
+<p>FPGA I/O 是 3.3V 电平。如果上拉到 5V，断开时 FPGA 引脚收到 5V——超过耐压，<b>会烧 FPGA</b>。</p>
+</div>
+
+
+<!-- ====== 电源 ====== -->
+<h2>5. 5V / 3.3V / GND：核心板排针 &rarr; 底板器件</h2>
+
+<div class="two-col">
+<div>
+<div class="principle">
+<h3>5V 去哪</h3>
+<p>
+  &rarr; 4个 S8550 的集电极<br>
+  &rarr; 通过 S8550_E 到数码管阳极<br>
+  <br>
+  数码管需要 5V 驱动（LED 段压降 2V，3.3V 不够）
+</p>
+</div>
+</div>
+<div>
+<div class="principle">
+<h3>3.3V 去哪</h3>
+<p>
+  &rarr; 2个开关上拉电阻<br>
+  <br>
+  必须 3.3V，因为 FPGA I/O 是 3.3V 电平
+</p>
+</div>
+</div>
+</div>
+
+<div class="principle">
+<h3>为什么都从核心板排针取？</h3>
+<p>核心板 Type-C 供入 5V，板上有稳压芯片把 5V 转成 3.3V。底板不需要重复造电源——核心板已经做好了，排针上就有 5V 和 3.3V 引脚，直接引过来用。</p>
+</div>
+
+
+<!-- ====== 总结 ====== -->
+<h2>总结：所有信号连接都是这三条规则的推论</h2>
+
+<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;">
+<tr style="background:#444;color:#fff;">
+  <th style="padding:8px 10px;text-align:left;">信号</th>
+  <th style="padding:8px 10px;text-align:left;">用了哪条规则</th>
+  <th style="padding:8px 10px;text-align:left;">所以这样设计</th>
+</tr>
+<tr>
+  <td style="padding:8px 10px;border:1px solid #ddd;">SEG[7:0]</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">规则1：LED 必须限流</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">每段串 470&Omega;，电流 6.4mA，亮度均匀</td>
+</tr>
+<tr style="background:#f9f9f9;">
+  <td style="padding:8px 10px;border:1px solid #ddd;">DIG[3:0]</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">规则2：FPGA 驱不动 45mA</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">经 S8550 三极管放大，基极串 4.7K&Omega;</td>
+</tr>
+<tr>
+  <td style="padding:8px 10px;border:1px solid #ddd;">LED_RUN/PAUSE</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">规则1：LED 必须限流<br>规则2 不触发（3mA &lt; 16mA）</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">串 470&Omega; 即可，不需要三极管</td>
+</tr>
+<tr style="background:#f9f9f9;">
+  <td style="padding:8px 10px;border:1px solid #ddd;">SW_RST/PAUSE</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">规则3：输入不能悬空</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">10K&Omega; 上拉到 3.3V</td>
+</tr>
+<tr>
+  <td style="padding:8px 10px;border:1px solid #ddd;">5V / 3.3V</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">核心板已有，不重复造</td>
+  <td style="padding:8px 10px;border:1px solid #ddd;">直接从排针取</td>
+</tr>
+</table>
+
+</body>
+</html>

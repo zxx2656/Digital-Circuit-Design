@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>排母是什么 + 第二部分要体现什么</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Microsoft YaHei",sans-serif; padding:30px; color:#222; max-width:960px; margin:0 auto; }
+  h1 { text-align:center; font-size:22px; margin-bottom:25px; }
+  h2 { font-size:17px; margin:30px 0 12px; border-left:4px solid #1a73e8; padding-left:10px; }
+
+  /* 排母图解 */
+  .connector-demo { display:flex; gap:40px; justify-content:center; align-items:flex-end; margin:20px 0; }
+  .connector-box { text-align:center; }
+  .core-board-box { width:220px; height:140px; background:#e8f0fe; border:3px solid #1a73e8; border-radius:8px; position:relative; }
+  .core-board-box .label { position:absolute; top:10px; left:0; right:0; text-align:center; font-weight:bold; color:#1a73e8; font-size:14px; }
+  .male-pins { position:absolute; bottom:5px; left:20px; right:20px; display:flex; justify-content:space-between; }
+  .male-pin { width:6px; height:30px; background:#c0c0c0; border-radius:1px; }
+
+  .base-board-box { width:260px; height:160px; background:#fff3e0; border:3px solid #e37400; border-radius:8px; position:relative; }
+  .base-board-box .label { position:absolute; top:10px; left:0; right:0; text-align:center; font-weight:bold; color:#e37400; font-size:14px; }
+  .female-sockets { position:absolute; top:5px; left:30px; right:30px; display:flex; justify-content:space-between; }
+  .female-socket { width:8px; height:22px; background:#555; border-radius:2px; border:1px solid #333; }
+  .female-socket-inner { width:4px; height:16px; background:#999; margin:3px auto 0; }
+
+  .arrow-connect { font-size:40px; color:#888; display:flex; align-items:center; }
+
+  .comp-on-board { position:absolute; bottom:15px; left:15px; right:15px; font-size:10px; color:#555; }
+
+  /* 第二部分说明 */
+  .part2-demo { border:3px solid #333; border-radius:8px; padding:20px; background:#fafafa; margin:15px 0; }
+  .part2-demo table { width:100%; border-collapse:collapse; font-size:13px; }
+  .part2-demo th { background:#444; color:#fff; padding:8px 10px; text-align:left; }
+  .part2-demo td { padding:8px 10px; border:1px solid #ddd; font-size:13px; }
+  .highlight { background:#fffde7; padding:2px 6px; border-radius:3px; border:1px solid #f9ab00; }
+  .wrong { background:#fce8e6; padding:2px 6px; border-radius:3px; border:1px solid #ea4335; text-decoration:line-through; }
+
+  .flow-demo { display:flex; align-items:center; gap:8px; font-size:13px; margin:8px 0; flex-wrap:wrap; }
+  .flow-demo .box { border:2px solid #555; border-radius:4px; padding:4px 10px; background:#fff; white-space:nowrap; }
+  .flow-demo .arrow { font-size:18px; color:#888; }
+
+  .compare-box { display:flex; gap:20px; margin:15px 0; }
+  .compare-item { flex:1; border-radius:8px; padding:15px; }
+  .compare-item.good { border:2px solid #34a853; background:#f0fff4; }
+  .compare-item.bad { border:2px solid #ea4335; background:#fff0f0; }
+  .compare-item h4 { margin-bottom:8px; }
+
+  @media print { body { padding:10px; } }
+</style>
+</head>
+<body>
+
+<h1>排母是什么 &amp; 第二部分要体现什么</h1>
+
+<!-- ============ 排母 ============ -->
+<h2>一、排母是什么</h2>
+
+<p>核心板下面有一排排的<b>金属针</b>（排针，公头）。底板上面焊了一排排的<b>金属孔</b>（排母，母座）。把核心板往底板上插，针插进孔里，电就通了。</p>
+
+<div class="connector-demo">
+  <div class="connector-box">
+    <div class="core-board-box">
+      <div class="label">核心板 90x60mm</div>
+      <div class="male-pins">
+        <div class="male-pin"></div><div class="male-pin"></div><div class="male-pin"></div>
+        <div class="male-pin"></div><div class="male-pin"></div><div class="male-pin"></div>
+        <div class="male-pin"></div><div class="male-pin"></div><div class="male-pin"></div>
+        <div class="male-pin"></div><div class="male-pin"></div><div class="male-pin"></div>
+        <div class="male-pin"></div><div class="male-pin"></div><div class="male-pin"></div>
+        <div class="male-pin"></div><div class="male-pin"></div><div class="male-pin"></div>
+        <div class="male-pin"></div><div class="male-pin"></div>
+      </div>
+    </div>
+    <p style="font-size:11px;margin-top:4px;">排针（公头，在核心板底面）<br>像一排金属腿</p>
+  </div>
+
+  <div class="arrow-connect">&#8594;</div>
+
+  <div class="connector-box">
+    <div class="base-board-box">
+      <div class="label">底板 80x80mm</div>
+      <div class="female-sockets">
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+        <div class="female-socket"><div class="female-socket-inner"></div></div>
+      </div>
+      <div class="comp-on-board">
+        底板上还有：<br>
+        &#9670; 数码管 &nbsp; | &nbsp; &#9670; LED &nbsp; | &nbsp; &#9670; 开关 &nbsp; | &nbsp; &#9670; 电阻 &nbsp; | &nbsp; &#9670; 三极管<br>
+        这些器件都通过铜线连到排母的引脚上
+      </div>
+    </div>
+    <p style="font-size:11px;margin-top:4px;">排母（母座，焊在底板上）<br>像一排小孔，等针插进来</p>
+  </div>
+</div>
+
+<p style="text-align:center;margin-top:10px;">
+  <b>排母的作用</b>：核心板上的 FPGA 信号通过 排针&#8594;排母 传到底板上的器件（LED、数码管、开关）。<br>
+  同样，开关的状态也通过 排母&#8594;排针 传回给 FPGA。
+</p>
+
+<!-- ============ 第二部分到底要画什么 ============ -->
+<h2>二、第二部分到底要体现什么</h2>
+
+<p>第二部分 = <b>一张信号接线清单 + 每根线经过什么器件</b>。</p>
+<p>它回答的问题是：<span class="highlight">"画 AD 原理图的时候，这根线从 FPGA 出来，串多大电阻，接到哪个器件的哪个脚？"</span></p>
+
+<div class="part2-demo">
+<p style="font-weight:bold;margin-bottom:10px;">这就是第二部分：</p>
+<table>
+<tr><th>信号名</th><th>从哪来</th><th>到哪去</th><th>中间经过</th></tr>
+<tr>
+  <td style="font-family:Consolas;">SW_RST</td>
+  <td>拨动开关1</td>
+  <td>&rarr; FPGA 输入引脚</td>
+  <td>开关闭合&rarr;GND；断开&rarr;10K&Omega;上拉到3.3V</td>
+</tr>
+<tr>
+  <td style="font-family:Consolas;">SEG[7:0]</td>
+  <td>FPGA 输出引脚 &times;8</td>
+  <td>&rarr; 数码管 8 个段选脚</td>
+  <td>每路串 <b>470&Omega;</b></td>
+</tr>
+<tr>
+  <td style="font-family:Consolas;">DIG[3:0]</td>
+  <td>FPGA 输出引脚 &times;4</td>
+  <td>&rarr; 数码管 4 个位选脚</td>
+  <td>每路串 <b>4.7K&Omega;</b> &rarr; <b>S8550 基极</b> &rarr; S8550_C接5V &rarr; S8550_E接数码管阳极</td>
+</tr>
+<tr>
+  <td style="font-family:Consolas;">LED_RUN</td>
+  <td>FPGA 输出引脚</td>
+  <td>&rarr; 绿色LED &rarr; GND</td>
+  <td>串 <b>470&Omega;</b></td>
+</tr>
+<tr>
+  <td style="font-family:Consolas;">LED_PAUSE</td>
+  <td>FPGA 输出引脚</td>
+  <td>&rarr; 红色LED &rarr; GND</td>
+  <td>串 <b>470&Omega;</b></td>
+</tr>
+<tr>
+  <td style="font-family:Consolas;">5V</td>
+  <td>核心板排针</td>
+  <td>&rarr; S8550 集电极 (4路)</td>
+  <td>走线直接连</td>
+</tr>
+<tr>
+  <td style="font-family:Consolas;">3.3V</td>
+  <td>核心板排针</td>
+  <td>&rarr; 开关上拉电阻 (2路)</td>
+  <td>走线直接连</td>
+</tr>
+<tr>
+  <td style="font-family:Consolas;">GND</td>
+  <td>核心板排针</td>
+  <td>&rarr; 所有需接地的器件</td>
+  <td>走线直接连，覆铜铺地</td>
+</tr>
+</table>
+
+<p style="margin-top:12px;font-size:13px;">
+  &#9650; 第二部分就是一个这样的东西。信号名 + 从哪来 + 到哪去 + 经过什么（电阻值/三极管）。
+</p>
+</div>
+
+
+<!-- ============ 三部分对比 ============ -->
+<h2>三、第一部分 vs 第二部分 &mdash; 本质区别</h2>
+
+<div class="compare-box">
+  <div class="compare-item good">
+    <h4>&#10003; 第一部分（系统级）</h4>
+    <p style="font-size:13px;line-height:2;">
+      画：一根 Type-C 线 &#8594; 整个板子 &#8594; 数码管<br>
+      画：开关1（清零/启动）<br>
+      画：绿灯&#8594;计数，红灯&#8594;暂停<br>
+      <br>
+      <b>不画</b>电阻值、信号名、三极管<br>
+      <br>
+      给<b>老师/用户</b>看的：<br>"这个秒表怎么用"
+    </p>
+  </div>
+  <div class="compare-item good">
+    <h4>&#10003; 第二部分（电路级）</h4>
+    <p style="font-size:13px;line-height:2;">
+      画：SEG[7:0] &#8594; 470&Omega; &times;8 &#8594; 数码管a~g<br>
+      画：DIG[0] &#8594; 4.7K&Omega; &#8594; S8550 &#8594; 位1<br>
+      画：SW_RST &#8594; 10K&Omega;上拉 &#8594; FPGA输入<br>
+      <br>
+      <b>不画</b>器件位置、FPGA内部模块<br>
+      <br>
+      给<b>画 AD 原理图的人</b>看的：<br>"这根线怎么连、串多大电阻"
+    </p>
+  </div>
+</div>
+
+<!-- ============ 形象比喻 ============ -->
+<h2>四、一个形象的比喻</h2>
+
+<p style="font-size:15px;margin:15px 0;line-height:2;">
+  <b>第一部分</b> = 装修方案：<br>
+  &emsp;"客厅放沙发，餐厅放桌子，卧室放床"<br><br>
+
+  <b>第二部分</b> = 施工图：<br>
+  &emsp;"沙发背后的墙上，离地1.2米处，打一个膨胀螺栓，用M6螺丝固定"<br><br>
+
+  <b>第三部分</b> = 水管电路图：<br>
+  &emsp;"热水器的冷水管从总阀门分出来，经过前置过滤器，进入热水器进水口"
+</p>
+
+<div class="compare-box" style="margin-top:20px;">
+  <div class="compare-item bad">
+    <h4>&#10007; 第二部分容易犯的错：写太多</h4>
+    <p style="font-size:12px;line-height:1.8;">
+      "数码管放在底板左上角"<br>
+      "FPGA IO32 接到数码管 a段"<br>
+      "走线要 0.5mm 宽"<br>
+      "代码里 if sw_rst==0 then..."<br>
+      <br>
+      &larr; 这些分别是 PCB、引脚分配、Verilog 的事<br>
+      <b>第二部分不要写这些</b>
+    </p>
+  </div>
+  <div class="compare-item bad">
+    <h4>&#10007; 第二部分容易犯的错：写太少</h4>
+    <p style="font-size:12px;line-height:1.8;">
+      "数码管接 FPGA"<br>
+      "开关接 FPGA"<br>
+      "LED 接 FPGA"<br>
+      <br>
+      &larr; 没写电阻值、没写信号名、没写方向<br>
+      <b>这样画 AD 的人不知道怎么做</b>
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>共阳极数码管显示原理</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Microsoft YaHei",sans-serif; padding:30px; color:#222; max-width:1000px; margin:0 auto; background:#fff; }
+  h1 { text-align:center; font-size:22px; margin-bottom:4px; }
+  .sub { text-align:center; font-size:12px; color:#888; margin-bottom:22px; }
+  h2 { font-size:17px; margin:36px 0 14px; border-left:5px solid #1a73e8; padding-left:10px; }
+  p { line-height:1.9; font-size:14px; margin:8px 0; }
+  .diagram-box { background:#fff; border:2px solid #bbb; border-radius:10px; padding:18px; margin:12px 0; }
+  .row { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+  .explain { flex:1; min-width:280px; }
+  .principle { background:#fff; border:1px solid #ddd; border-radius:6px; padding:12px 15px; margin-bottom:10px; font-size:13px; line-height:1.9; }
+  .principle strong { color:#c5221f; }
+  .key { color:#1a73e8; font-weight:bold; }
+  svg text { font-family:"Microsoft YaHei","SimHei",sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>共阳极数码管显示原理</h1>
+<p class="sub">SR410361N — 4位共阳极数码管 &middot; 接线与工作方式</p>
+
+<!-- ====== 第1节：物理结构 ====== -->
+<h2>一、SR410361N 的物理引脚</h2>
+
+<div class="diagram-box">
+<svg width="920" height="420" viewBox="0 0 920 420">
+
+  <!-- Digital tube outline -->
+  <rect x="30" y="40" width="860" height="170" fill="#1a1a1a" stroke="#333" stroke-width="3" rx="12"/>
+
+  <!-- 4 digits -->
+  <!-- Digit 1 (分十) -->
+  <g transform="translate(70, 70)">
+    <!-- a -->
+    <rect x="25" y="10" width="50" height="10" fill="#300" rx="2"/>
+    <!-- b -->
+    <rect x="75" y="25" width="10" height="45" fill="#300" rx="2"/>
+    <!-- c -->
+    <rect x="75" y="80" width="10" height="45" fill="#300" rx="2"/>
+    <!-- d -->
+    <rect x="25" y="125" width="50" height="10" fill="#300" rx="2"/>
+    <!-- e -->
+    <rect x="5" y="80" width="10" height="45" fill="#300" rx="2"/>
+    <!-- f -->
+    <rect x="5" y="25" width="10" height="45" fill="#300" rx="2"/>
+    <!-- g -->
+    <rect x="25" y="65" width="50" height="10" fill="#300" rx="2"/>
+    <!-- dp -->
+    <circle cx="90" cy="135" r="5" fill="#300"/>
+  </g>
+  <text x="110" y="240" font-size="14" fill="#ccc" text-anchor="middle">位1·分十</text>
+
+  <!-- Digit 2 (分个) -->
+  <g transform="translate(210, 70)">
+    <rect x="25" y="10" width="50" height="10" fill="#300" rx="2"/>
+    <rect x="75" y="25" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="75" y="80" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="25" y="125" width="50" height="10" fill="#300" rx="2"/>
+    <rect x="5" y="80" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="5" y="25" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="25" y="65" width="50" height="10" fill="#300" rx="2"/>
+    <circle cx="90" cy="135" r="5" fill="#300"/>
+  </g>
+  <text x="250" y="240" font-size="14" fill="#ccc" text-anchor="middle">位2·分个</text>
+
+  <!-- Colon -->
+  <circle cx="360" cy="120" r="6" fill="#600"/>
+  <circle cx="360" cy="140" r="6" fill="#600"/>
+
+  <!-- Digit 3 (秒十) -->
+  <g transform="translate(400, 70)">
+    <rect x="25" y="10" width="50" height="10" fill="#300" rx="2"/>
+    <rect x="75" y="25" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="75" y="80" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="25" y="125" width="50" height="10" fill="#300" rx="2"/>
+    <rect x="5" y="80" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="5" y="25" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="25" y="65" width="50" height="10" fill="#300" rx="2"/>
+    <circle cx="90" cy="135" r="5" fill="#300"/>
+  </g>
+  <text x="440" y="240" font-size="14" fill="#ccc" text-anchor="middle">位3·秒十</text>
+
+  <!-- Digit 4 (秒个) -->
+  <g transform="translate(540, 70)">
+    <rect x="25" y="10" width="50" height="10" fill="#300" rx="2"/>
+    <rect x="75" y="25" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="75" y="80" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="25" y="125" width="50" height="10" fill="#300" rx="2"/>
+    <rect x="5" y="80" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="5" y="25" width="10" height="45" fill="#300" rx="2"/>
+    <rect x="25" y="65" width="50" height="10" fill="#300" rx="2"/>
+    <circle cx="90" cy="135" r="5" fill="#300"/>
+  </g>
+  <text x="580" y="240" font-size="14" fill="#ccc" text-anchor="middle">位4·秒个</text>
+
+  <!-- Pin labels below -->
+  <line x1="70" y1="260" x2="70" y2="310" stroke="#888" stroke-width="1"/>
+  <text x="70" y="330" font-size="10" fill="#e37400" text-anchor="middle" font-weight="bold">DIG1</text>
+  <text x="70" y="345" font-size="9" fill="#888" text-anchor="middle">(阳极)</text>
+
+  <line x1="210" y1="260" x2="210" y2="310" stroke="#888" stroke-width="1"/>
+  <text x="210" y="330" font-size="10" fill="#e37400" text-anchor="middle" font-weight="bold">DIG2</text>
+  <text x="210" y="345" font-size="9" fill="#888" text-anchor="middle">(阳极)</text>
+
+  <line x1="400" y1="260" x2="400" y2="310" stroke="#888" stroke-width="1"/>
+  <text x="400" y="330" font-size="10" fill="#e37400" text-anchor="middle" font-weight="bold">DIG3</text>
+  <text x="400" y="345" font-size="9" fill="#888" text-anchor="middle">(阳极)</text>
+
+  <line x1="540" y1="260" x2="540" y2="310" stroke="#888" stroke-width="1"/>
+  <text x="540" y="330" font-size="10" fill="#e37400" text-anchor="middle" font-weight="bold">DIG4</text>
+  <text x="540" y="345" font-size="9" fill="#888" text-anchor="middle">(阳极)</text>
+
+  <!-- Segment pins on the sides -->
+  <text x="15" y="375" font-size="10" fill="#1a73e8" font-weight="bold">SEG_a</text>
+  <text x="80" y="375" font-size="10" fill="#1a73e8" font-weight="bold">SEG_b</text>
+  <text x="145" y="375" font-size="10" fill="#1a73e8" font-weight="bold">SEG_c</text>
+  <text x="210" y="375" font-size="10" fill="#1a73e8" font-weight="bold">SEG_d</text>
+  <text x="275" y="375" font-size="10" fill="#1a73e8" font-weight="bold">SEG_e</text>
+  <text x="340" y="375" font-size="10" fill="#1a73e8" font-weight="bold">SEG_f</text>
+  <text x="405" y="375" font-size="10" fill="#1a73e8" font-weight="bold">SEG_g</text>
+  <text x="470" y="375" font-size="10" fill="#1a73e8" font-weight="bold">SEG_dp</text>
+
+  <!-- Total pins annotation -->
+  <rect x="640" y="280" width="260" height="130" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="770" y="302" font-size="12" fill="#333" text-anchor="middle" font-weight="bold">引脚统计</text>
+  <line x1="660" y1="312" x2="880" y2="312" stroke="#ddd" stroke-width="1"/>
+  <text x="660" y="332" font-size="11" fill="#e37400">4 个阳极引脚 (DIG1~4)</text>
+  <text x="660" y="350" font-size="10" fill="#888">每位数码管一个，独立控制哪一位亮</text>
+  <text x="660" y="374" font-size="11" fill="#1a73e8">8 个阴极引脚 (SEG_a~g,dp)</text>
+  <text x="660" y="392" font-size="10" fill="#888">4 位数码管共享，控制亮什么形状</text>
+  <text x="660" y="410" font-size="10" fill="#888">共 12 个引脚</text>
+</svg>
+</div>
+
+<div class="row">
+  <div style="flex:1;">
+    <div class="principle">
+      <strong>阳极 (DIG)：决定"哪一位亮"</strong><br>
+      4 个阳极互不相通，各自独立。DIG1 通电 → 位1能亮，DIG1 断电 → 位1全灭。<br>
+      <span class="key">阳极是"总开关"——这一位亮不亮，阳极说了算。</span>
+    </div>
+  </div>
+  <div style="flex:1;">
+    <div class="principle">
+      <strong>阴极 (SEG)：决定"亮成什么形状"</strong><br>
+      8 个阴极在 4 位数码管之间是<b>并联共享的</b>——4 位的 a 段全接在同一条 SEG_a 线上。<br>
+      <span class="key">阴极是"画笔"——亮成什么数字，阴极说了算。</span>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 第2节：内部接线 ====== -->
+<h2>二、内部接线：4 位共享 8 条段选线</h2>
+
+<div class="diagram-box">
+<svg width="920" height="360" viewBox="0 0 920 360">
+
+  <!-- SEG bus (horizontal) -->
+  <text x="20" y="24" font-size="13" fill="#1a73e8" font-weight="bold">SEG_a (阴极总线)</text>
+  <line x1="20" y1="30" x2="880" y2="30" stroke="#1a73e8" stroke-width="2"/>
+
+  <text x="20" y="54" font-size="13" fill="#1a73e8" font-weight="bold">SEG_b</text>
+  <line x1="20" y1="60" x2="880" y2="60" stroke="#1a73e8" stroke-width="2"/>
+
+  <text x="20" y="84" font-size="13" fill="#1a73e8" font-weight="bold">SEG_c</text>
+  <line x1="20" y1="90" x2="880" y2="90" stroke="#1a73e8" stroke-width="2"/>
+
+  <text x="20" y="150" font-size="11" fill="#888">... (d,e,f,g,dp 共 8 条)</text>
+  <text x="20" y="170" font-size="11" fill="#1a73e8" font-weight="bold">SEG_c ~ SEG_dp</text>
+  <line x1="20" y1="180" x2="880" y2="180" stroke="#1a73e8" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+  <!-- 4 digit blocks -->
+  <!-- Dig1 -->
+  <rect x="100" y="210" width="150" height="100" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" rx="6"/>
+  <text x="175" y="232" font-size="13" fill="#1a73e8" text-anchor="middle" font-weight="bold">位1 (分十)</text>
+  <!-- Segment LEDs inside -->
+  <polygon points="120,250 128,260 120,270 112,260" fill="#34a853" opacity="0.8"/>
+  <polygon points="135,250 143,260 135,270 127,260" fill="#34a853" opacity="0.8"/>
+  <polygon points="150,250 158,260 150,270 142,260" fill="#34a853" opacity="0.8"/>
+  <text x="175" y="275" font-size="9" fill="#888" text-anchor="middle">&times;8 段 LED</text>
+  <text x="175" y="300" font-size="10" fill="#e37400" text-anchor="middle" font-weight="bold">阳极 ← DIG1 (独立)</text>
+
+  <!-- Dig2 -->
+  <rect x="290" y="210" width="150" height="100" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" rx="6"/>
+  <text x="365" y="232" font-size="13" fill="#1a73e8" text-anchor="middle" font-weight="bold">位2 (分个)</text>
+  <polygon points="310,250 318,260 310,270 302,260" fill="#34a853" opacity="0.8"/>
+  <polygon points="325,250 333,260 325,270 317,260" fill="#34a853" opacity="0.8"/>
+  <polygon points="340,250 348,260 340,270 332,260" fill="#34a853" opacity="0.8"/>
+  <text x="365" y="275" font-size="9" fill="#888" text-anchor="middle">&times;8 段 LED</text>
+  <text x="365" y="300" font-size="10" fill="#e37400" text-anchor="middle" font-weight="bold">阳极 ← DIG2 (独立)</text>
+
+  <!-- Dig3 -->
+  <rect x="480" y="210" width="150" height="100" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" rx="6"/>
+  <text x="555" y="232" font-size="13" fill="#1a73e8" text-anchor="middle" font-weight="bold">位3 (秒十)</text>
+  <polygon points="500,250 508,260 500,270 492,260" fill="#34a853" opacity="0.8"/>
+  <polygon points="515,250 523,260 515,270 507,260" fill="#34a853" opacity="0.8"/>
+  <polygon points="530,250 538,260 530,270 522,260" fill="#34a853" opacity="0.8"/>
+  <text x="555" y="275" font-size="9" fill="#888" text-anchor="middle">&times;8 段 LED</text>
+  <text x="555" y="300" font-size="10" fill="#e37400" text-anchor="middle" font-weight="bold">阳极 ← DIG3 (独立)</text>
+
+  <!-- Dig4 -->
+  <rect x="670" y="210" width="150" height="100" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" rx="6"/>
+  <text x="745" y="232" font-size="13" fill="#1a73e8" text-anchor="middle" font-weight="bold">位4 (秒个)</text>
+  <polygon points="690,250 698,260 690,270 682,260" fill="#34a853" opacity="0.8"/>
+  <polygon points="705,250 713,260 705,270 697,260" fill="#34a853" opacity="0.8"/>
+  <polygon points="720,250 728,260 720,270 712,260" fill="#34a853" opacity="0.8"/>
+  <text x="745" y="275" font-size="9" fill="#888" text-anchor="middle">&times;8 段 LED</text>
+  <text x="745" y="300" font-size="10" fill="#e37400" text-anchor="middle" font-weight="bold">阳极 ← DIG4 (独立)</text>
+
+  <!-- Connection lines from SEG bus to each digit -->
+  <line x1="300" y1="30" x2="175" y2="248" stroke="#1a73e8" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+  <line x1="300" y1="30" x2="365" y2="248" stroke="#1a73e8" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+  <line x1="500" y1="30" x2="555" y2="248" stroke="#1a73e8" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+  <line x1="500" y1="30" x2="745" y2="248" stroke="#1a73e8" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+
+  <!-- KEY insight box -->
+  <rect x="70" y="340" width="780" height="60" fill="#fff3cd" stroke="#f9ab00" stroke-width="1.5" rx="6"/>
+  <text x="460" y="362" font-size="13" fill="#e37400" text-anchor="middle" font-weight="bold">
+    关键：8 条 SEG 线被 4 位数码管并联共享 → 同一时刻只能让一位亮，否则 4 位显示完全相同的数字
+  </text>
+  <text x="460" y="386" font-size="12" fill="#e37400" text-anchor="middle">
+    这就是为什么需要 DICK 信号 + 动态扫描——阳极（DIG）轮流通电，阴极（SEG）配合输出对应数字
+  </text>
+</svg>
+</div>
+
+<!-- ====== 第3节：完整电流路径 ====== -->
+<h2>三、完整电流路径：一段 LED 是怎么亮的</h2>
+
+<div class="diagram-box">
+<svg width="920" height="340" viewBox="0 0 920 340">
+  <defs>
+    <marker id="arrow5v" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#e37400"/>
+    </marker>
+    <marker id="arrowSeg" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#1a73e8"/>
+    </marker>
+  </defs>
+
+  <!-- Path: 5V → S8550 → Anode → LED → 470R → FPGA → GND -->
+
+  <!-- 5V source -->
+  <rect x="20" y="60" width="100" height="40" fill="#fff3e0" stroke="#e37400" stroke-width="2" rx="6"/>
+  <text x="70" y="84" font-size="13" fill="#e37400" text-anchor="middle" font-weight="bold">5V 电源</text>
+  <text x="70" y="112" font-size="9" fill="#888" text-anchor="middle">(核心板排母)</text>
+
+  <!-- Arrow 5V → S8550 -->
+  <line x1="120" y1="80" x2="200" y2="80" stroke="#e37400" stroke-width="3" marker-end="url(#arrow5v)"/>
+
+  <!-- S8550 -->
+  <circle cx="230" cy="80" r="28" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2.5"/>
+  <text x="230" y="76" font-size="12" fill="#1a73e8" text-anchor="middle" font-weight="bold">S8550</text>
+  <text x="230" y="92" font-size="9" fill="#1a73e8" text-anchor="middle">PNP</text>
+  <text x="230" y="60" font-size="10" fill="#c5221f" text-anchor="middle" font-weight="bold">E→C</text>
+
+  <!-- DIG control -->
+  <line x1="230" y1="108" x2="230" y2="140" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="240" y="135" font-size="9" fill="#1a73e8">DIG=0V → PNP导通</text>
+  <text x="240" y="148" font-size="9" fill="#888">DIG=3.3V → PNP关断</text>
+
+  <!-- Arrow S8550 → Anode -->
+  <line x1="258" y1="80" x2="330" y2="80" stroke="#c5221f" stroke-width="3" marker-end="url(#arrow5v)"/>
+  <text x="294" y="70" font-size="9" fill="#888" text-anchor="middle">≈4.7V</text>
+
+  <!-- Anode block -->
+  <rect x="330" y="55" width="120" height="50" fill="#fce8e6" stroke="#c5221f" stroke-width="2" rx="6"/>
+  <text x="390" y="78" font-size="12" fill="#c5221f" text-anchor="middle" font-weight="bold">数码管阳极</text>
+  <text x="390" y="96" font-size="9" fill="#888" text-anchor="middle">(公共端 · 电流入口)</text>
+
+  <!-- Arrow Anode → LED -->
+  <line x1="450" y1="80" x2="530" y2="80" stroke="#c5221f" stroke-width="3" marker-end="url(#arrow5v)"/>
+
+  <!-- LED -->
+  <circle cx="565" cy="80" r="22" fill="#fff" stroke="#34a853" stroke-width="2.5"/>
+  <text x="565" y="76" font-size="11" fill="#34a853" text-anchor="middle" font-weight="bold">LED</text>
+  <text x="565" y="92" font-size="9" fill="#888" text-anchor="middle">段</text>
+  <text x="565" y="112" font-size="9" fill="#888" text-anchor="middle">压降≈2V</text>
+
+  <!-- Arrow LED → 470R -->
+  <line x1="587" y1="80" x2="650" y2="80" stroke="#c5221f" stroke-width="2" marker-end="url(#arrow5v)"/>
+  <text x="618" y="70" font-size="9" fill="#888" text-anchor="middle">≈2.7V</text>
+
+  <!-- 470R -->
+  <rect x="650" y="65" width="28" height="30" fill="#fff" stroke="#333" stroke-width="2" rx="3"/>
+  <text x="664" y="84" font-size="11" fill="#c5221f" text-anchor="middle" font-weight="bold">470Ω</text>
+
+  <!-- Arrow 470R → FPGA -->
+  <line x1="678" y1="80" x2="750" y2="80" stroke="#1a73e8" stroke-width="2" marker-end="url(#arrowSeg)"/>
+  <text x="714" y="70" font-size="9" fill="#888" text-anchor="middle">≈0V</text>
+
+  <!-- FPGA pin -->
+  <rect x="750" y="60" width="130" height="40" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" rx="6"/>
+  <text x="815" y="78" font-size="12" fill="#1a73e8" text-anchor="middle" font-weight="bold">SEG_a (FPGA)</text>
+  <text x="815" y="94" font-size="9" fill="#888" text-anchor="middle">输出 0V → 亮</text>
+
+  <!-- Arrow FPGA → GND -->
+  <line x1="815" y1="100" x2="815" y2="150" stroke="#1a73e8" stroke-width="2" marker-end="url(#arrowSeg)"/>
+
+  <!-- GND -->
+  <line x1="750" y1="150" x2="880" y2="150" stroke="#666" stroke-width="3"/>
+  <text x="900" y="154" font-size="12" fill="#666" font-weight="bold">GND</text>
+
+  <!-- Voltage drop summary -->
+  <rect x="20" y="180" width="870" height="135" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="6"/>
+  <text x="460" y="204" font-size="13" fill="#333" text-anchor="middle" font-weight="bold">沿途电压变化（以 SEG_a 亮为例）</text>
+  <line x1="40" y1="214" x2="880" y2="214" stroke="#ddd" stroke-width="1"/>
+
+  <!-- Voltage bar -->
+  <rect x="80" y="230" width="760" height="24" fill="#eee" stroke="#ccc" stroke-width="1" rx="4"/>
+  <rect x="80" y="230" width="300" height="24" fill="#e37400" rx="4"/>
+  <rect x="380" y="230" width="200" height="24" fill="#c5221f" rx="0"/>
+  <rect x="580" y="230" width="200" height="24" fill="#1a73e8" rx="0"/>
+  <rect x="780" y="230" width="60" height="24" fill="#666" rx="4"/>
+
+  <text x="230" y="248" font-size="10" fill="#fff" text-anchor="middle">5V → 4.7V</text>
+  <text x="480" y="248" font-size="10" fill="#fff" text-anchor="middle">≈2.7V</text>
+  <text x="680" y="248" font-size="10" fill="#fff" text-anchor="middle">≈0V</text>
+  <text x="810" y="248" font-size="10" fill="#fff" text-anchor="middle">0V</text>
+
+  <text x="80" y="275" font-size="10" fill="#e37400">5V电源</text>
+  <text x="180" y="275" font-size="10" fill="#888">S8550压降≈0.3V</text>
+  <text x="360" y="275" font-size="10" fill="#888">数码管阳极</text>
+  <text x="470" y="275" font-size="10" fill="#888">LED压降≈2V</text>
+  <text x="580" y="275" font-size="10" fill="#888">470Ω压降≈2.7V</text>
+  <text x="680" y="275" font-size="10" fill="#888">SEG引脚(FPGA拉低到0V)</text>
+  <text x="800" y="275" font-size="10" fill="#888">GND</text>
+
+  <text x="460" y="298" font-size="11" fill="#c5221f" text-anchor="middle">
+    <tspan font-weight="bold">电流</tspan>=(5V−0.3V−2V−0V)÷470Ω ≈ 5.7mA
+  </text>
+  <text x="460" y="314" font-size="11" fill="#888" text-anchor="middle">
+    4 位动态扫描，每位置占空比 1/4 → 平均电流 ≈ 1.4mA/段，肉眼感觉亮度刚好
+  </text>
+</svg>
+</div>
+
+<div class="row">
+  <div style="flex:1;">
+    <div class="principle">
+      <strong>阳极说："我把 5V 给你"</strong><br>
+      5V → S8550(E→C) → 数码管阳极。<br>
+      S8550 在这里像一个水龙头。DIG=0V 时水龙头打开，5V 流进来。DIG=3.3V 时水龙头关闭。<br>
+      <span class="key">阳极决定"通不通电"。</span>
+    </div>
+  </div>
+  <div style="flex:1;">
+    <div class="principle">
+      <strong>阴极说："我把路接到 GND"</strong><br>
+      数码管阴极 → 470Ω → SEG → FPGA拉低 → GND。<br>
+      FPGA 输出 0V 时，电路形成回路 → 电流流过 LED → 亮。FPGA 输出 3.3V 时，电压不够 → 不亮。<br>
+      <span class="key">阴极决定"让不让电流流过这一段"。</span>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 第4节：动态扫描 ====== -->
+<h2>四、4 位如何同时显示不同数字</h2>
+
+<div class="diagram-box">
+<svg width="920" height="300" viewBox="0 0 920 300">
+
+  <!-- Time axis -->
+  <line x1="80" y1="40" x2="860" y2="40" stroke="#333" stroke-width="2"/>
+  <text x="870" y="44" font-size="12" fill="#333" font-weight="bold">时间</text>
+
+  <!-- Ticks -->
+  <line x1="130" y1="40" x2="130" y2="50" stroke="#333" stroke-width="1.5"/>
+  <text x="100" y="62" font-size="9" fill="#888">t₁</text>
+  <line x1="260" y1="40" x2="260" y2="50" stroke="#333" stroke-width="1.5"/>
+  <text x="250" y="62" font-size="9" fill="#888">t₂</text>
+  <line x1="390" y1="40" x2="390" y2="50" stroke="#333" stroke-width="1.5"/>
+  <text x="380" y="62" font-size="9" fill="#888">t₃</text>
+  <line x1="520" y1="40" x2="520" y2="50" stroke="#333" stroke-width="1.5"/>
+  <text x="510" y="62" font-size="9" fill="#888">t₄</text>
+  <line x1="650" y1="40" x2="650" y2="50" stroke="#333" stroke-width="1.5"/>
+  <text x="620" y="62" font-size="9" fill="#888">t₅=t₁</text>
+
+  <!-- DIG1 high pulse -->
+  <rect x="130" y="80" width="110" height="25" fill="#34a853" rx="4"/>
+  <text x="185" y="97" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">DIG1=ON</text>
+  <text x="185" y="118" font-size="9" fill="#888" text-anchor="middle">位1(分十)亮</text>
+
+  <!-- DIG2 high pulse -->
+  <rect x="260" y="80" width="110" height="25" fill="#34a853" rx="4"/>
+  <text x="315" y="97" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">DIG2=ON</text>
+  <text x="315" y="118" font-size="9" fill="#888" text-anchor="middle">位2(分个)亮</text>
+
+  <!-- DIG3 high pulse -->
+  <rect x="390" y="80" width="110" height="25" fill="#34a853" rx="4"/>
+  <text x="445" y="97" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">DIG3=ON</text>
+  <text x="445" y="118" font-size="9" fill="#888" text-anchor="middle">位3(秒十)亮</text>
+
+  <!-- DIG4 high pulse -->
+  <rect x="520" y="80" width="110" height="25" fill="#34a853" rx="4"/>
+  <text x="575" y="97" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">DIG4=ON</text>
+  <text x="575" y="118" font-size="9" fill="#888" text-anchor="middle">位4(秒个)亮</text>
+
+  <!-- DIG1 again -->
+  <rect x="650" y="80" width="110" height="25" fill="#34a853" rx="4"/>
+  <text x="705" y="97" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">DIG1=ON</text>
+  <text x="705" y="118" font-size="9" fill="#888" text-anchor="middle">位1 亮</text>
+
+  <!-- SEG values -->
+  <rect x="130" y="150" width="110" height="40" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1" rx="4"/>
+  <text x="185" y="168" font-size="11" fill="#1a73e8" text-anchor="middle" font-weight="bold">SEG="5"</text>
+  <text x="185" y="183" font-size="9" fill="#888" text-anchor="middle">分十=5</text>
+
+  <rect x="260" y="150" width="110" height="40" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1" rx="4"/>
+  <text x="315" y="168" font-size="11" fill="#1a73e8" text-anchor="middle" font-weight="bold">SEG="3"</text>
+  <text x="315" y="183" font-size="9" fill="#888" text-anchor="middle">分个=3</text>
+
+  <rect x="390" y="150" width="110" height="40" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1" rx="4"/>
+  <text x="445" y="168" font-size="11" fill="#1a73e8" text-anchor="middle" font-weight="bold">SEG="2"</text>
+  <text x="445" y="183" font-size="9" fill="#888" text-anchor="middle">秒十=2</text>
+
+  <rect x="520" y="150" width="110" height="40" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1" rx="4"/>
+  <text x="575" y="168" font-size="11" fill="#1a73e8" text-anchor="middle" font-weight="bold">SEG="7"</text>
+  <text x="575" y="183" font-size="9" fill="#888" text-anchor="middle">秒个=7</text>
+
+  <rect x="650" y="150" width="110" height="40" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1" rx="4"/>
+  <text x="705" y="168" font-size="11" fill="#1a73e8" text-anchor="middle" font-weight="bold">SEG="5"</text>
+  <text x="705" y="183" font-size="9" fill="#888" text-anchor="middle">(循环)</text>
+
+  <!-- What you see -->
+  <rect x="200" y="230" width="500" height="50" fill="#fff3cd" stroke="#f9ab00" stroke-width="2" rx="8"/>
+  <text x="450" y="254" font-size="14" fill="#e37400" text-anchor="middle" font-weight="bold">你看到的</text>
+  <text x="450" y="274" font-size="16" fill="#c5221f" text-anchor="middle" font-weight="bold">5 3 : 2 7</text>
+  <text x="450" y="292" font-size="10" fill="#888" text-anchor="middle">每秒循环 250 轮，人眼视觉暂留 → 4 位同时稳定显示</text>
+
+</svg>
+</div>
+
+<p>
+  <strong>每一瞬间只有一位亮、SEG 输出这一位的数字。</strong><br>
+  扫描频率 1KHz → 4 位各置 250μs → 每秒循环 250 轮。<br>
+  人眼反应跟不上 → 视觉暂留 → 看起来 4 位同时亮着不同的数字。<br>
+  这就像电影——每秒 24 帧静止画面连起来，你看到的是连续动作。
+</p>
+
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>模块设计深入原理</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Microsoft YaHei",sans-serif; padding:25px; max-width:1000px; margin:0 auto; background:#fff; color:#222; }
+  h1 { text-align:center; font-size:21px; margin-bottom:4px; }
+  .sub { text-align:center; font-size:12px; color:#888; margin-bottom:22px; }
+  h2 { font-size:16px; margin:34px 0 12px; border-left:5px solid #c5221f; padding-left:10px; }
+  h3 { font-size:14px; margin:18px 0 8px; color:#555; }
+  p { line-height:1.9; font-size:14px; margin:6px 0; }
+  .highlight { background:#fff3cd; padding:2px 6px; border-radius:3px; }
+  .key { color:#c5221f; font-weight:bold; }
+  .code { background:#f5f5f5; border:1px solid #ddd; border-radius:4px; padding:8px 12px; font-family:Consolas,monospace; font-size:12px; line-height:1.7; margin:8px 0; white-space:pre; }
+  .tbl { width:100%; border-collapse:collapse; font-size:13px; margin:10px 0; }
+  .tbl th { background:#555; color:#fff; padding:7px 10px; text-align:left; }
+  .tbl td { padding:7px 10px; border:1px solid #ddd; vertical-align:top; }
+  .box { border:2px solid #ddd; border-radius:8px; padding:14px; margin:12px 0; }
+  .box h4 { font-size:13px; margin-bottom:8px; color:#333; }
+  svg text { font-family:"Microsoft YaHei","SimHei",sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>模块设计深入原理</h1>
+<p class="sub">key_debounce &middot; fsm_ctrl &middot; counter_60 &middot; seg_decoder</p>
+
+<!-- ====== key_debounce ====== -->
+<h2>一、key_debounce — 为什么数字消抖是最优解</h2>
+
+<h3>1.1 机械开关的物理特性</h3>
+
+<p>拨动开关的金属触点在接触瞬间像弹簧一样来回弹跳——不是"啪"一下合上，而是弹了 5~20ms 才稳定。示波器抓到的是这样的：</p>
+
+<div class="diagram-box">
+<svg viewBox="0 0 880 140" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="18" font-size="11" fill="#333" font-weight="bold">开关从"断开"拨到"闭合"——示波器看到的实际波形</text>
+  <line x1="20" y1="40" x2="850" y2="40" stroke="#ddd" stroke-width="1"/>
+  <!-- Before: HIGH -->
+  <line x1="20" y1="30" x2="60" y2="30" stroke="#34a853" stroke-width="2"/>
+  <text x="40" y="48" font-size="9" fill="#34a853" text-anchor="middle">3.3V</text>
+  <!-- Bounce zone -->
+  <path d="M60,30 L65,30 L68,70 L71,25 L74,65 L77,20 L80,70 L83,30 L86,60 L89,25 L92,70 L95,28 L98,65 L101,22 L104,70 L107,25 L110,70 L113,20 L116,65 L119,30 L122,60 L125,28 L128,70 L131,25 L134,70" stroke="#c5221f" stroke-width="1.5" fill="none"/>
+  <text x="97" y="86" font-size="9" fill="#c5221f" text-anchor="middle">抖动期 5~20ms</text>
+  <!-- After: LOW -->
+  <line x1="135" y1="70" x2="400" y2="70" stroke="#34a853" stroke-width="2"/>
+  <text x="270" y="48" font-size="9" fill="#34a853" text-anchor="middle">0V (稳定)</text>
+  <!-- Sampling annotations -->
+  <line x1="235" y1="95" x2="235" y2="120" stroke="#1a73e8" stroke-width="1"/>
+  <line x1="245" y1="95" x2="245" y2="120" stroke="#1a73e8" stroke-width="1"/>
+  <line x1="255" y1="95" x2="255" y2="120" stroke="#1a73e8" stroke-width="1"/>
+  <text x="245" y="134" font-size="9" fill="#1a73e8" text-anchor="middle">clk_1KHz 每隔 1ms 采样一次</text>
+</svg>
+</div>
+
+<h3>1.2 为什么不用 RC 硬件滤波</h3>
+
+<table class="tbl">
+<tr><th>RC 滤波（电容+电阻）</th><th>数字消抖（采样+计数器）</th></tr>
+<tr><td>需要额外焊电容——<span class="key">元件清单里没有电容给你用</span></td><td>纯 Verilog 代码，<span class="key">零硬件成本</span></td></tr>
+<tr><td>RC 时间常数固定，调试时改不了——得换电阻/电容</td><td>改采样次数只需改一个参数→重新下载，<span class="key">秒级迭代</span></td></tr>
+<tr><td>电容有 ±20% 误差，每块板子消抖时间不一样</td><td>FPGA 内部计数器绝对精确，<span class="key">无离散性</span></td></tr>
+<tr><td>多路开关需要多个 RC 电路，占 PCB 面积</td><td>Verilog 里多例化一个 instance，<span class="key">不额外占面积</span></td></tr>
+</table>
+
+<h3>1.3 采样频率为什么是 1KHz</h3>
+
+<p>这是一个折中选择：</p>
+
+<div class="box"><h4>约束分析</h4>
+<p><span class="key">采样间隔 < 抖动最小宽度。</span> 抖动脉冲最小 ≈ 0.5ms，所以采样间隔 ≤ 0.5ms → 频率 ≥ 2KHz。<br>
+<span class="key">采样间隔 > 消抖窗口/计数次数。</span> 窗口=20ms，采样20次 → 间隔=1ms → 频率=1KHz。<br>
+<span class="key">不能太快。</span>如果用 50MHz 直接采样——每个抖动毛刺都抓到，计数器不断被重置，永远消不干净。<br>
+<span class="key">不能太慢。</span>用 100Hz→间隔10ms→可能连续两次采到抖动谷值→误判为稳定。</p>
+</div>
+
+<p><span class="highlight">1KHz 刚好落在这四个约束的交集里。</span></p>
+
+<h3>1.4 消抖的深层问题：亚稳态</h3>
+
+<p>外部开关信号和 FPGA 内部时钟是异步的——开关随时可能跳变，跟时钟边沿无固定相位关系。如果跳变刚好发生在时钟上升沿附近：</p>
+
+<div class="box"><h4>亚稳态 (Metastability)</h4>
+<p>寄存器的建立时间 (setup time) 和保持时间 (hold time) 各约 0.1ns。时钟上升沿前后的  0.2ns 窗口内，输入不能变。<br>
+如果开关信号在这个窗口内跳变：寄存器输出既不是 0 也不是 1，而是中间电压——在接下来几百皮秒内悬在中间、随机振荡——最终随机落到 0 或 1。<br>
+<span class="key">两级同步器 (Two-stage synchronizer)：第一个寄存器可能进入亚稳态 → 第二个寄存器等一个时钟周期再采 → 这时第一个已经稳定了</span>。</p>
+</div>
+
+<div class="code">// 两级同步 + 消抖，完整链路
+reg sync1, sync2;
+always @(posedge clk_1KHz) begin
+    sync1 <= sw_raw;      // 第一级：可能亚稳态
+    sync2 <= sync1;       // 第二级：必然稳定
+    // sync2 才是安全的，送入消抖计数器
+end</div>
+
+<p><span class="key">所以消抖模块的内部结构实际上是：两级同步器 → 连续采样计数器 → 输出更新。</span></p>
+
+<h3>1.5 消抖窗口的边缘情况</h3>
+
+<div class="box"><h4>如果抖动超过 20ms（比如开关老化）</h4>
+<p>计数器会在每次抖动跳变时归零。如果抖动期 30ms，计数器会归零多次，最终在 30ms 后才确认稳定。<br>
+→ 用户会感到额外 10ms 延迟——毫无感觉。<br>
+→ 消抖不会失败，只是延迟更长。这是一个 <span class="key">自适应</span> 的行为。</p>
+</div>
+
+---
+
+<!-- ====== fsm_ctrl ====== -->
+<h2>二、fsm_ctrl — 状态机设计的每一个决策</h2>
+
+<h3>2.1 Moore 还是 Mealy</h3>
+
+<table class="tbl">
+<tr><th>Moore 机</th><th>Mealy 机</th></tr>
+<tr><td>输出只取决于当前状态</td><td>输出取决于当前状态 + 当前输入</td></tr>
+<tr><td>输出与时钟同步变化——<span class="key">无毛刺</span></td><td>输入变化时输出立刻变——可能产生毛刺</td></tr>
+<tr><td>状态比 Mealy 多</td><td>状态少但输出逻辑复杂</td></tr>
+<tr><td><span class="highlight">✓ 这个项目用 Moore</span></td><td>不适合——LED 控制有毛刺会肉眼可见闪烁</td></tr>
+</table>
+
+<p>Moore 机在这个项目里的体现：count_en / count_clr / led_run / led_pause 四个输出只由 state 寄存器决定，不看 sw_rst/sw_pause 的值。</p>
+
+<h3>2.2 为什么只有 3 个状态就够了</h3>
+
+<p>系统只有三种操作模式：</p>
+<table class="tbl">
+<tr><th>状态</th><th>计数器</th><th>数码管</th><th>LED</th><th>用户看到的</th></tr>
+<tr><td>IDLE</td><td>强归00:00</td><td>显示00:00</td><td>都灭</td><td>秒表待命中</td></tr>
+<tr><td>COUNT</td><td>每秒+1</td><td>实时变化</td><td>绿灯亮</td><td>正在计时</td></tr>
+<tr><td>PAUSE</td><td>冻结不动</td><td>停在当前值</td><td>红灯亮</td><td>暂停了</td></tr>
+</table>
+
+<p>有人会问：reset 是不是该单独一个状态？清零是一个动作而不是一种模式——进入 IDLE 时连带执行清零就完成了，不需要多一个状态。"预置"也不是一个独立状态——它只是 IDLE 状态下计数器初始值不为 00:00 而已。</p>
+
+<h3>2.3 状态编码</h3>
+
+<div class="box"><h4>为什么用独热码 (One-Hot)</h4>
+<p>3 个状态，3 种编码方案：</p>
+<table class="tbl">
+<tr><th>编码</th><th>IDLE</th><th>COUNT</th><th>PAUSE</th><th>寄存器</th><th>译码</th></tr>
+<tr><td>二进制</td><td>00</td><td>01</td><td>10</td><td>2bit ✓</td><td>需要译码 ✗</td></tr>
+<tr><td>独热码</td><td>001</td><td>010</td><td>100</td><td>3bit</td><td>每bit=一个状态 ✓</td></tr>
+</table>
+<p>用独热码：<span class="key">state[0]=IDLE, state[1]=COUNT, state[2]=PAUSE</span>。<br>
+输出逻辑简化到极致：<span class="code">assign count_en = state[1]; // COUNT状态就是count_en</span><br>
+不需要译码器——状态寄存器的每一位直接就是一个输出。功耗更低、速度更快。</p>
+</div>
+
+<h3>2.4 优先级编码的实现</h3>
+
+<div class="code">// sw_rst 的优先级在 case 结构里体现
+always @(posedge clk) begin
+    case (state)
+        IDLE:  if (!sw_rst_clean)     state <= COUNT;
+        COUNT: if (sw_rst_clean)      state <= IDLE;     // ① 先判
+               else if (sw_pause_clean) state <= PAUSE;   // ② 后判
+        PAUSE: if (sw_rst_clean)      state <= IDLE;     // ① 先判
+               else if (!sw_pause_clean) state <= COUNT;  // ② 后判
+    endcase
+end</div>
+
+<p><span class="key">优先级由 if-else 的书写顺序决定，不是由什么"优先级编码器"电路决定。</span> 综合工具按代码顺序生成逻辑——第一个 if 的条件被优先判断。</p>
+
+<h3>2.5 为什么输出是组合逻辑而非寄存器</h3>
+
+<div class="box"><h4>两种方案对比</h4>
+<p><span class="key">A：组合输出</span>——state 一变 → next_state 一更新 → 同一拍输出跟着变。零延迟。<br>
+<span class="key">B：寄存器输出</span>——state 变了 → 下一拍输出才更新。延迟一个时钟周期(1μs)。<br><br>
+1μs 延迟对秒表没任何影响，但组合输出更简单：<br><span class="code">assign count_en  = (state == COUNT);</span><br>
+<span class="code">assign count_clr = (state == IDLE);</span><br><br>
+一行代码，综合器优化成纯导线——不消耗 LUT。</p>
+</div>
+
+---
+
+<!-- ====== counter_60 ====== -->
+<h2>三、counter_60 — 60进制BCD计数器的实现细节</h2>
+
+<h3>3.1 为什么用 BCD 计数器而不是二进制 + 转换</h3>
+
+<div class="box"><h4>两条路对比</h4>
+<p><span class="key">方案A（二进制）：</span> 16bit 二进制计数器 (0~3599) → 除60取模 → BCD转换 → 4位BCD码显示。<br>
+需要除法器（取模）或查 ROM 表，多消耗几十个 LUT。<br><br>
+<span class="key">方案B（BCD级联·本项目）：</span> 4个独立的BCD计数器级联。每个位自己知道自己什么时候该归零。<br>
+零额外的转换电路，天然输出 BCD 码。</p>
+</div>
+
+<h3>3.2 逐位分析</h3>
+
+<div class="code">// 秒个位：核心逻辑
+always @(posedge clk_1Hz or posedge count_clr) begin
+    if (count_clr)                    sec_l <= 4'd0;     // 异步清零优先
+    else if (count_en) begin
+        if (sec_l == 4'd9) begin
+            sec_l   <= 4'd0;                            // 归零
+            carry_l <= 1'b1;                            // 产生进位
+        end else begin
+            sec_l   <= sec_l + 1;
+            carry_l <= 1'b0;
+        end
+    end
+end</div>
+
+<div class="box"><h4>进位时序的关键</h4>
+<p>秒个位从9归零的<strong>同一拍</strong>，carry=1。<br>
+秒十位在<strong>下一拍</strong>clk_1Hz上升沿收到 carry=1→+1。<br>
+→ 进位是同步的，不是异步的。如果秒个位归零时异步触发秒十位+1→会出现毛刺和竞争。<br>
+<span class="key">同步进位：前一拍产生carry → 下一拍高位采样carry → 稳定可靠。</span></p>
+</div>
+
+<h3>3.3 秒十位和分十位的特殊处理——满6归零</h3>
+
+<div class="code">// 秒十位：不是满10，是满6
+always @(posedge clk_1Hz or posedge count_clr) begin
+    if (count_clr)                    sec_h <= 4'd0;
+    else if (count_en && carry_l) begin   // 上一级的进位到了才+1
+        if (sec_h == 4'd5) begin          // 5→0，不是 9→0
+            sec_h   <= 4'd0;
+            carry_h <= 1'b1;
+        end else begin
+            sec_h   <= sec_h + 1;
+            carry_h <= 1'b0;
+        end
+    end
+end</div>
+
+<h3>3.4 59:59→00:00 的边界条件——两种实现方式</h3>
+
+<table class="tbl">
+<tr><th>方式A：自然溢出</th><th>方式B：显式检测（本项目）</th></tr>
+<tr>
+  <td>等分十位从5归零→自然回到00:00</td>
+  <td>59:59时提前检测+强制归零</td>
+</tr>
+<tr>
+  <td>4级进位链，延迟4拍</td>
+  <td>1拍完成</td>
+</tr>
+<tr>
+  <td>进位链可能路径过长→时序违例</td>
+  <td>纯组合逻辑检测，无时序风险</td>
+</tr>
+</table>
+
+<div class="code">// 显式检测：当所有位都到最大值时，下一个脉冲全部归零
+wire is_59_59 = (min_h==4'd5) && (min_l==4'd9) &&
+                (sec_h==4'd5) && (sec_l==4'd9);
+
+always @(posedge clk_1Hz or posedge count_clr) begin
+    if (count_clr)     {min_h,min_l,sec_h,sec_l} <= 16'd0;
+    else if (count_en) begin
+        if (is_59_59)  {min_h,min_l,sec_h,sec_l} <= 16'd0;  // 全部归零
+        else           // 正常级联计数...
+    end
+end</div>
+
+<h3>3.5 预置值的实现</h3>
+
+<div class="code">// 验收时改这两个参数即可
+parameter INIT_MIN = 15;    // 预置分钟
+parameter INIT_SEC = 45;    // 预置秒钟
+
+// 复位时加载预置值
+always @(posedge count_clr) begin
+    if (count_clr) begin
+        min_h <= INIT_MIN / 10;   // 15 → 1
+        min_l <= INIT_MIN % 10;   // 15 → 5
+        sec_h <= INIT_SEC / 10;   // 45 → 4
+        sec_l <= INIT_SEC % 10;   // 45 → 5
+    end
+end</div>
+
+<p>上电后count_clr=1→counter_60内部归零条件触发→加载INIT值。用户拨开关1到"启动"→count_clr撤除→从INIT值开始计数。<span class="key">清零是回到00:00还是回到预设值，取决于count_clr行为。</span></p>
+
+---
+
+<!-- ====== seg_decoder ====== -->
+<h2>四、seg_decoder — 扫描显示的每个细节</h2>
+
+<h3>4.1 为什么是 1KHz 而不是 50Hz</h3>
+
+<div class="box"><h4>人眼闪烁感知</h4>
+<p>临界闪烁频率 (CFF)：大约 50-60Hz。低于此频率→人眼感觉到闪烁。4位扫描→每位刷新率 = 扫描频率/4。<br>
+<span class="key">50Hz/4=12.5Hz→肉眼可见严重闪烁。</span><br>
+<span class="key">1KHz/4=250Hz</span>→远超 CFF→人眼完全看不出闪烁。<br><br>
+为什么不用 10KHz？可以，但没必要。1KHz 已经远超 CFF，再高只会增加动态功耗（CMOS 电路功耗 ∝ 频率）。</p>
+</div>
+
+<h3>4.2 残影（鬼影）问题——Break-Before-Make</h3>
+
+<div class="diagram-box">
+<svg viewBox="0 0 880 210" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="18" font-size="11" fill="#333" font-weight="bold">错误做法：先开后关 → 残影</text>
+  <line x1="20" y1="40" x2="850" y2="40" stroke="#ddd" stroke-width="1"/>
+  <rect x="60" y="50" width="100" height="25" fill="#e8f5e9" stroke="#34a853" rx="3"/>
+  <text x="110" y="67" font-size="9" fill="#34a853" text-anchor="middle">位0亮,SEG="5"</text>
+  <rect x="170" y="50" width="100" height="25" fill="#e8f5e9" stroke="#34a853" rx="3"/>
+  <text x="220" y="67" font-size="9" fill="#34a853" text-anchor="middle">位1亮,SEG="5"</text>
+  <rect x="280" y="50" width="100" height="25" fill="#e8f5e9" stroke="#34a853" rx="3"/>
+  <text x="330" y="67" font-size="9" fill="#c5221f" text-anchor="middle">位1亮,SEG="3"</text>
+  <text x="330" y="85" font-size="9" fill="#c5221f">▲位1来不及灭,SEG已切到"3"→位1短暂显示"5"→残影</text>
+  <line x1="350" y1="95" x2="350" y2="120" stroke="#c5221f" stroke-width="1"/>
+  <text x="350" y="135" font-size="9" fill="#c5221f" text-anchor="middle">旧图案在新位上闪一下</text>
+
+  <text x="20" y="160" font-size="11" fill="#333" font-weight="bold">正确做法：先关后开 (Break-Before-Make)</text>
+  <line x1="20" y1="180" x2="850" y2="180" stroke="#ddd" stroke-width="1"/>
+  <rect x="60" y="185" width="85" height="20" fill="#ccc" stroke="#888" rx="3"/>
+  <text x="102" y="199" font-size="9" fill="#888" text-anchor="middle">全关(DIG=1111)</text>
+  <text x="155" y="200" font-size="14" fill="#888">→</text>
+  <rect x="170" y="185" width="110" height="20" fill="#e8f0fe" rx="3"/>
+  <text x="225" y="199" font-size="9" fill="#1a73e8" text-anchor="middle">SEG切换到"3"图案</text>
+  <text x="290" y="200" font-size="14" fill="#888">→</text>
+  <rect x="305" y="185" width="100" height="20" fill="#e8f5e9" stroke="#34a853" rx="3"/>
+  <text x="355" y="199" font-size="9" fill="#34a853" text-anchor="middle">开位1(DIG[1]=0)</text>
+  <text x="410" y="200" font-size="10" fill="#34a853">位1显示"3",零残影 ✓</text>
+</svg>
+</div>
+
+<div class="code">// 扫描时序的状态机
+always @(posedge clk_1KHz) begin
+    case (scan_state)
+        2'd0: begin
+            dig <= 4'b1111;                        // 先全关
+            scan_state <= 2'd1;
+        end
+        2'd1: begin
+            current_bcd <= bcd_inputs[scan_cnt];   // 换段选图案
+            scan_state <= 2'd2;
+        end
+        2'd2: begin
+            dig <= ~(1 << scan_cnt);               // 再开目标位
+            scan_cnt <= scan_cnt + 1;               // 准备下一位
+            scan_state <= 2'd0;
+        end
+    endcase
+end</div>
+
+<p><span class="key">3拍完成一次位切换：关(1拍)→换图案(1拍)→开(1拍)。</span> 1KHz 时钟驱动，每位占 3 个时钟周期=3ms。4位×3ms=12ms 一轮≈83Hz 刷新率——刚好在人眼闪烁临界之上。</p>
+
+<h3>4.3 如果只有两拍（关→开在同一拍）</h3>
+
+<p>关和开之间没有专门的"换图案"拍→图案切换发生在开关切换的同一拍→旧图案短暂出现在新位上→残影。<span class="key">必须分开，不能省。</span></p>
+
+<h3>4.4 段选译码表的位序</h3>
+
+<div class="box"><h4>SEG[7:0] 的位分配</h4>
+<p>数码管有 8 个段：a, b, c, d, e, f, g, dp。<br>
+SEG 是 8bit 总线——每个 bit 对应一个段。<br>
+具体哪个 bit 对应哪个段<span class="key">没有行业标准</span>，由你自己在代码里定义。<br>
+定义完之后 PCB 接线必须照着这个定义来——Verilog 里 SEG[0]=a，PCB 上 SEG[0] 就必须接数码管 a 段。</p>
+</div>
+
+<div class="code">// 一种位分配（推荐：按字母顺序）
+// SEG = {dp, g, f, e, d, c, b, a}  高位→低位
+// a段=bit0, b段=bit1, ..., g段=bit6, dp=bit7
+
+case (bcd)
+    4'd0: seg = 8'b1100_0000;  // 0: abcdef亮  g灭 dp灭
+    4'd1: seg = 8'b1111_1001;  // 1: bc亮      其余灭
+    4'd2: seg = 8'b1010_0100;  // 2: abdeg亮   cf灭
+    ...
+endcase</div>
+
+</body>
+</html>
